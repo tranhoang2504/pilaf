@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>PILAF // INJECTOR</title>
+<style>
+:root{
+  --acc:#00f0ff; --acc2:#ff2bd6; --bg:#05070d;
+  --line:rgba(0,240,255,.18); --txt:#c8d6e5; --dim:#54677a;
+  --ok:#00ff88; --err:#ff3355; --warn:#ffaa00;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:radial-gradient(circle at 50% 30%,#0d1626 0%,var(--bg) 65%);
+  font-family:"Consolas","JetBrains Mono",monospace;
+  color:var(--txt);min-height:100vh;display:grid;place-items:center;
+  padding:16px;overflow-x:hidden;
+}
+.page{
+  width:460px;max-width:96vw;display:none;flex-direction:column;
+  background:linear-gradient(160deg,#0a0e1a,#05070d);
+  border:1px solid var(--line);
+  clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+  box-shadow:0 0 40px rgba(0,240,255,.08);
+  padding:22px;gap:11px;
+}
+.page.active{display:flex;animation:fade .3s}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}}
+header{display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--line);padding-bottom:10px}
+.logo{font-size:15px;font-weight:700;letter-spacing:4px;color:#fff;text-shadow:0 0 8px var(--acc)}
+.logo span{font-size:9px;letter-spacing:2px;color:var(--acc2);margin-left:6px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--acc);
+  box-shadow:0 0 8px var(--acc);animation:pulse 1.6s infinite;display:inline-block}
+@keyframes pulse{50%{opacity:.25;transform:scale(.7)}}
+.badge{font-size:9px;letter-spacing:1.5px;color:var(--acc);display:flex;align-items:center;gap:6px}
+h2{font-size:11px;letter-spacing:2px;color:var(--dim);font-weight:400;text-transform:uppercase}
+p.hint{font-size:11px;color:var(--dim);line-height:1.6}
+p.hint b{color:var(--acc2)}
+input[type=text]{
+  width:100%;padding:11px 13px;background:rgba(0,240,255,.04);
+  border:1px solid var(--line);color:var(--acc);font-family:inherit;
+  font-size:12px;letter-spacing:2px;outline:none;transition:.2s;
+}
+input[type=text]:focus{border-color:var(--acc);box-shadow:0 0 14px rgba(0,240,255,.25)}
+input[type=text]::placeholder{color:var(--dim);letter-spacing:1px;font-size:10px}
+button{
+  width:100%;padding:11px;background:linear-gradient(135deg,#00f0ff,#7a5cff 60%,#ff2bd6);
+  border:none;color:#fff;font-family:inherit;font-size:11px;font-weight:700;
+  letter-spacing:2px;cursor:pointer;transition:.2s;text-transform:uppercase;
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+}
+button:hover{filter:brightness(1.15);box-shadow:0 0 18px rgba(0,240,255,.4)}
+button:disabled{filter:grayscale(1);cursor:not-allowed;opacity:.5}
+.log{font-size:9.5px;line-height:1.85;color:var(--dim);
+  background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);
+  padding:9px;max-height:160px;overflow-y:auto;white-space:pre-wrap;
+  word-break:break-word;letter-spacing:.3px}
+.log .ok{color:var(--ok)} .log .err{color:var(--err)}
+.log .info{color:var(--acc)} .log .warn{color:var(--warn)}
+.log .stage{color:#fff;font-weight:700}
+
+/* KHU VỰC KÉO THẢ ĐƯỢC LÀM NỔI BẬT */
+.dropzone { 
+  display:none; padding:16px 10px; text-align:center; font-size:11px; font-weight:bold; letter-spacing:1px;
+  border:2px dashed var(--acc); color:var(--acc); background:rgba(0,240,255,.08);
+  cursor:pointer; transition: 0.2s; margin-bottom:6px; border-radius:4px;
+}
+.dropzone:hover { background:rgba(0,240,255,.2); box-shadow: 0 0 15px rgba(0,240,255,.3); }
+.dropzone input { display:none; }
+.dropzone.shake { animation: shake 0.4s ease-in-out; border-color: var(--err); color: var(--err); background: rgba(255,51,85,.1); }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.switch-row{display:flex;align-items:center;justify-content:space-between;
+  padding:11px;background:rgba(255,255,255,.02);
+  border-left:2px solid var(--line);transition:.2s;cursor:pointer;user-select:none}
+.switch-row:hover{border-left-color:var(--acc)}
+.switch-row.on{border-left-color:var(--acc);background:rgba(0,240,255,.04)}
+.switch-row .label{font-size:11px;letter-spacing:1px;font-weight:700}
+.switch-row .sub{font-size:9.5px;color:var(--dim);margin-top:2px}
+.sw{width:40px;height:20px;border-radius:10px;position:relative;flex:none;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);transition:.25s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;
+  border-radius:50%;background:#4a5568;transition:.25s cubic-bezier(.4,1.6,.6,1)}
+.switch-row.on .sw{background:rgba(0,240,255,.16);border-color:var(--acc);
+  box-shadow:inset 0 0 12px rgba(0,240,255,.4),0 0 10px rgba(0,240,255,.2)}
+.switch-row.on .sw::after{left:22px;background:var(--acc);box-shadow:0 0 10px var(--acc)}
+
+#vectors{display:none;flex-direction:column;gap:3px}
+#vectors:not(:empty){display:flex}
+.vec{display:flex;justify-content:space-between;align-items:center;
+  padding:6px 10px;background:rgba(0,0,0,.4);border-left:2px solid var(--line);
+  font-size:9.5px;letter-spacing:.5px;transition:.2s}
+.vec .n{color:var(--dim)}
+.vec .st{font-weight:700;letter-spacing:1px;color:var(--dim)}
+.vec.run{border-left-color:var(--warn);background:rgba(255,170,0,.05)}
+.vec.run .st{color:var(--warn);animation:pulse 1s infinite}
+.vec.ok{border-left-color:var(--ok);background:rgba(0,255,136,.06)}
+.vec.ok .st{color:var(--ok)}
+.vec.fail{border-left-color:var(--err)}
+.vec.fail .st{color:var(--err)}
+.vec.na{border-left-color:var(--dim);opacity:.5}
+
+.contact{display:flex;align-items:center;justify-content:space-between;
+  padding:9px 11px;background:rgba(255,43,214,.04);
+  border:1px solid rgba(255,43,214,.2);font-size:10.5px;letter-spacing:1px}
+.contact a{color:var(--acc2);text-decoration:none;font-weight:700}
+.foot{display:flex;justify-content:space-between;font-size:9px;
+  letter-spacing:1.2px;color:var(--dim);border-top:1px solid var(--line);
+  padding-top:9px;margin-top:2px}
+.foot .ok{color:var(--ok)}
+.device-badge{font-size:9px;letter-spacing:1.5px;padding:5px 9px;
+  border:1px solid var(--line);color:var(--acc);display:inline-block;align-self:flex-start}
+</style>
+</head>
+<body>
+
+<section class="page active" id="page1">
+  <header>
+    <div class="logo">PILAF<span>INJECTOR</span></div>
+    <div class="badge"><span class="dot"></span>SECURE</div>
+  </header>
+  <h2>🔑 KÍCH HOẠT BẢN QUYỀN</h2>
+  <p class="hint">Nhập key do <b>Trân Hoàng</b> cấp. Key khóa cứng vào HWID thiết bị.</p>
+  <div class="device-badge" id="devBadge">DETECTING...</div>
+  <input type="text" id="licenseInput" placeholder="PILAF-XXXX-XXXX"
+         maxlength="15" autocomplete="off" spellcheck="false" list="keyHist">
+  <datalist id="keyHist"></datalist>
+  <button id="btnActivate">XÁC THỰC &amp; KÍCH HOẠT</button>
+  <div class="log" id="authLog">[SYS] Ready.</div>
+  <div class="foot">
+    <span>HWID: <span id="hwidShort">—</span></span>
+    <span class="ok">● FIREBASE</span>
+  </div>
+</section>
+
+<section class="page" id="page2">
+  <header>
+    <div class="logo">PILAF<span>INJECTOR</span></div>
+    <div class="badge"><span class="dot"></span>ONLINE</div>
+  </header>
+
+  <div class="dropzone" id="dropZone">
+    📥 KÉO THẢ HOẶC CLICK ĐỂ NẠP <b>code.txt</b>
+    <input type="file" id="fileInput" accept=".txt">
+  </div>
+
+  <div class="switch-row" id="switchRow">
+    <div>
+      <div class="label">⚡ ENABLE INJECT</div>
+      <div class="sub" id="switchSub">Khởi động pipeline đa vector</div>
+    </div>
+    <div class="sw"></div>
+  </div>
+  <div id="vectors"></div>
+  <div class="log" id="injectLog">[IDLE] Chờ lệnh.</div>
+  <div class="contact">
+    <span>📡 CONTACT — ZALO</span>
+    <a href="https://zalo.me/0888431565" target="_blank" rel="noopener">0888 431 565</a>
+  </div>
+  <div class="foot">
+    <span>KEY: <span id="activeKey">—</span></span>
+    <span class="ok">● PIPELINE READY</span>
+  </div>
+</section>
+
+<script>
+(() => {
+"use strict";
+
+const FIREBASE_URL = "https://meowmeow-e6c41-default-rtdb.asia-southeast1.firebasedatabase.app/";
+const BRIDGE_PORTS = [27777, 27778, 8888, 8080, 3000, 9090, 1234];
+const LS_SESSION   = "pilaf_session_v1";
+const LS_LAST_KEY  = "pilaf_last_key";
+const LS_HISTORY   = "pilaf_key_history";
+const LS_PAYLOAD   = "pilaf_payload_cache";
+
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const timeout = ms => {
+  if (AbortSignal.timeout) return AbortSignal.timeout(ms);
+  const c = new AbortController();
+  setTimeout(() => c.abort(), ms);
+  return c.signal;
+};
+
+let currentDeviceId = "";
+let currentKey = "";
+let payloadCache = "";
+let payloadB64 = "";
+let activePlatform = null;
+
+function L(el, m, c = "info") {
+  const t = new Date().toLocaleTimeString("vi-VN");
+  el.innerHTML += `<div class="${c}">[${t}] ${m}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+/* ============ PAYLOAD SETUP ============ */
+function setPayload(text) {
+  payloadCache = text;
+  try { localStorage.setItem(LS_PAYLOAD, text); } catch(_) {}
+  const bytes = new TextEncoder().encode(text);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  payloadB64 = btoa(bin);
+  $("#dropZone").style.display = "none";
+  $("#switchSub").textContent = `Ready: ${payloadCache.length}B`;
+}
+
+async function preloadPayload() {
+  try {
+    const cached = localStorage.getItem(LS_PAYLOAD);
+    if (cached && cached.trim()) {
+      setPayload(cached);
+      fetchRemotePayload().then(ok => { if (ok) L($("#injectLog"), "Payload updated from server", "ok"); }).catch(()=>{});
+      return true;
+    }
+  } catch(_) {}
+
+  const ok = await fetchRemotePayload();
+  if (!ok) {
+    if (location.protocol === "file:") {
+      L($("#injectLog"), "Chạy Local (file://) — trình duyệt chặn đọc file. Hãy kéo thả code.txt vào ô.", "warn");
+    }
+    $("#dropZone").style.display = "block";
+    return false;
+  }
+  return true;
+}
+
+async function fetchRemotePayload() {
+  const files = ["code.txt", "./code.txt", "code.TXT", "CODE.txt", "Code.txt", "payload.txt"];
+  for (const f of files) {
+    try {
+      const r = await fetch(f + "?v=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) continue;
+      const t = await r.text();
+      if (!t.trim()) continue;
+      setPayload(t);
+      return true;
+    } catch(_) {}
+  }
+  return false;
+}
+
+function setupDropzone() {
+  const dz = $("#dropZone");
+  const fi = $("#fileInput");
+  
+  const updateUI = () => {
+    L($("#injectLog"), `Payload loaded: ${payloadCache.length}B`, "ok");
+    dz.classList.remove("shake");
+  };
+
+  dz.onclick = (e) => { if (e.target.tagName !== 'INPUT') fi.click(); };
+  
+  fi.onchange = async () => {
+    if (fi.files.length) {
+      const t = await fi.files[0].text();
+      if (t.trim()) { setPayload(t); updateUI(); }
+    }
+  };
+
+  dz.ondragover = e => { e.preventDefault(); dz.style.background = "rgba(0,240,255,.2)"; };
+  dz.ondragleave = e => { e.preventDefault(); dz.style.background = ""; };
+  
+  dz.ondrop = async e => {
+    e.preventDefault();
+    dz.style.background = "";
+    if (e.dataTransfer.files.length) {
+      const t = await e.dataTransfer.files[0].text();
+      if (t.trim()) { setPayload(t); updateUI(); }
+    }
+  };
+}
+
+/* ============ FINGERPRINT ============ */
+async function getDeviceId() {
+  const raw = [
+    screen.width, screen.height, screen.colorDepth,
+    navigator.hardwareConcurrency || 0, navigator.deviceMemory || 0,
+    navigator.platform || "", navigator.language || "",
+    Intl.DateTimeFormat().resolvedOptions().timeZone || "",
+    navigator.userAgent
+  ].join("|");
+  let cHash = "";
+  try {
+    const c = document.createElement("canvas");
+    c.width = 200; c.height = 40;
+    const x = c.getContext("2d");
+    x.textBaseline = "top"; x.font = "14px Arial";
+    x.fillStyle = "#f60"; x.fillRect(0, 0, 100, 20);
+    x.fillStyle = "#069"; x.fillText("PILAF-TH", 2, 2);
+    cHash = c.toDataURL();
+  } catch(_) {}
+  try {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw + "||" + cHash));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("").slice(0,32);
+  } catch(_) {
+    let h = 0; const s = raw + cHash;
+    for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+    return (Math.abs(h).toString(16) + "0".repeat(32)).slice(0,32);
+  }
+}
+function showHwid(id){ $("#hwidShort").textContent = id ? id.slice(0,8) + "…" + id.slice(-4) : "—"; }
+
+/* ============ PLATFORM ============ */
+function detectPlatform(){
+  const ua = navigator.userAgent || "", pf = navigator.platform || "";
+  if (/Android/i.test(ua))
+    return { os:"android", targets:["com.dts.freefireth","com.dts.freefiremax"], label:"ANDROID" };
+  if (/iPhone|iPad|iPod/i.test(ua) || (/Mac/i.test(pf) && "ontouchend" in document))
+    return { os:"ios", targets:["com.dts.freefireth","com.dts.freefiremax"], label:"iOS" };
+  return { os:"pc", targets:["HD-player.exe","com.dts.freefireth","com.dts.freefiremax"], label:"PC/WINDOWS" };
+}
+function getPlatform(){ return activePlatform || (activePlatform = detectPlatform()); }
+
+/* ============ FIREBASE ============ */
+async function fbGet(p){
+  const r = await fetch(`${FIREBASE_URL}${p}.json`);
+  if (!r.ok) throw new Error("FB " + r.status);
+  return r.json();
+}
+async function fbPut(p, o){
+  const r = await fetch(`${FIREBASE_URL}${p}.json`, {
+    method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(o)
+  });
+  if (!r.ok) throw new Error("FB " + r.status);
+  return r.json();
+}
+
+/* ============ KEY HISTORY ============ */
+function loadKeyHistory(){
+  try {
+    const last = localStorage.getItem(LS_LAST_KEY);
+    if (last) $("#licenseInput").value = last;
+    const hist = JSON.parse(localStorage.getItem(LS_HISTORY) || "[]");
+    const dl = $("#keyHist"); dl.innerHTML = "";
+    hist.forEach(k => { const o = document.createElement("option"); o.value = k; dl.appendChild(o); });
+  } catch(_) {}
+}
+function saveKeyHistory(k){
+  try {
+    localStorage.setItem(LS_LAST_KEY, k);
+    let h = [];
+    try { h = JSON.parse(localStorage.getItem(LS_HISTORY) || "[]"); } catch(_) {}
+    h = [k, ...h.filter(x => x !== k)].slice(0, 8);
+    localStorage.setItem(LS_HISTORY, JSON.stringify(h));
+    loadKeyHistory();
+  } catch(_) {}
+}
+
+/* ============ AUTH ============ */
+async function activateKey(){
+  const log = $("#authLog");
+  const btn = $("#btnActivate");
+  const key = $("#licenseInput").value.trim().toUpperCase();
+  log.innerHTML = "";
+  const A = (m,c="info") => L(log, m, c);
+
+  if (!/^PILAF-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key)) { A("Sai định dạng.","err"); return; }
+  btn.disabled = true; btn.textContent = "ĐANG XÁC THỰC...";
+  A("Firebase...");
+
+  try {
+    if (!currentDeviceId) { currentDeviceId = await getDeviceId(); showHwid(currentDeviceId); }
+    const node = await fbGet(`keys/${key}`);
+    if (!node) { A("Key không tồn tại.","err"); return; }
+    if (node.active !== true) { A("Key bị vô hiệu.","err"); return; }
+    if (node.expiryDate !== "PERMANENT") {
+      const exp = new Date(node.expiryDate);
+      if (isNaN(exp) || exp < new Date()) { A("Key hết hạn.","err"); return; }
+    }
+    if (node.hwid && node.hwid !== currentDeviceId) { A("Key khóa thiết bị khác.","err"); return; }
+    if (!node.hwid) {
+      await fbPut(`keys/${key}/hwid`, currentDeviceId);
+      await fbPut(`keys/${key}/activatedAt`, new Date().toISOString());
+      A("Khóa HWID OK.","ok");
+    } else A("HWID khớp.","ok");
+
+    currentKey = key;
+    saveKeyHistory(key);
+    try { localStorage.setItem(LS_SESSION, JSON.stringify({ key, hwid: currentDeviceId, savedAt: Date.now() })); } catch(_) {}
+    $("#activeKey").textContent = key;
+
+    A("Preload code.txt...");
+    const ok = await preloadPayload();
+    if (ok) A(`Payload: ${payloadCache.length}B`, "ok");
+    else A("Chưa tự động lấy được code.txt.", "warn");
+
+    setTimeout(() => {
+      $("#page1").classList.remove("active");
+      $("#page2").classList.add("active");
+      if (!ok) $("#switchSub").textContent = "⚠ Chưa có payload";
+    }, 400);
+  } catch(e) {
+    A("Lỗi: " + e.message, "err");
+  } finally {
+    btn.disabled = false; btn.textContent = "XÁC THỰC & KÍCH HOẠT";
+  }
+}
+
+async function tryAutoLogin(){
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(LS_SESSION) || "null"); } catch(_) {}
+  if (!saved || saved.hwid !== currentDeviceId) return false;
+  try {
+    const node = await fbGet(`keys/${saved.key}`);
+    if (!node || node.active !== true) return false;
+    if (node.hwid && node.hwid !== currentDeviceId) return false;
+    if (node.expiryDate !== "PERMANENT" && new Date(node.expiryDate) < new Date()) return false;
+    currentKey = saved.key;
+    $("#activeKey").textContent = saved.key;
+    const ok = await preloadPayload();
+    $("#page1").classList.remove("active");
+    $("#page2").classList.add("active");
+    if (!ok) $("#switchSub").textContent = "⚠ Chưa có payload";
+    return true;
+  } catch(_) { return false; }
+}
+
+/* ============ SCHEME BUILDER ============ */
+function buildSchemeUrl(plat){
+  const kq = `k=${encodeURIComponent(currentKey)}&h=${encodeURIComponent(currentDeviceId)}`;
+  if (plat.os === "android") {
+    const t = plat.targets[0];
+    const fb = encodeURIComponent(`https://play.google.com/store/apps/details?id=${t}`);
+    return `intent://inject?${kq}#Intent;scheme=pilaf;package=${t};` +
+           `S.pilaf_key=${encodeURIComponent(currentKey)};` +
+           `S.pilaf_hwid=${encodeURIComponent(currentDeviceId)};` +
+           `S.pilaf_payload=${encodeURIComponent(payloadB64.slice(0, 6000))};` +
+           `browser_fallback_url=${fb};end`;
+  }
+  if (plat.os === "ios") {
+    return `shortcuts://run-shortcut?name=PILAF-Inject&input=text&text=${encodeURIComponent(payloadB64.slice(0, 8000))}`;
+  }
+  return `pilaf://inject?${kq}&p=${encodeURIComponent(payloadB64.slice(0, 6000))}`;
+}
+
+function fireIframe(url){
+  const f = document.createElement("iframe");
+  f.style.cssText = "position:absolute;width:1px;height:1px;left:-9999px;border:0;opacity:0";
+  f.src = url;
+  document.body.appendChild(f);
+  setTimeout(() => { try { f.remove(); } catch(_) {} }, 2500);
+}
+
+/* ============ DOWNLOAD ============ */
+function downloadFile(name, content, mime){
+  const blob = new Blob([content], { type: mime || "application/octet-stream" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { try { a.remove(); URL.revokeObjectURL(url); } catch(_) {} }, 1500);
+}
+
+/* ============ PS1 GENERATOR ============ */
+function generatePS1(b64, targets){
+  const t = targets.map(x => `'${x}'`).join(",");
+  return `if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Start-Process powershell "-ExecutionPolicy Bypass -NoProfile -File \\"$PSCommandPath\\"" -Verb RunAs
+    exit
+}
+$targets = @(${t})
+$payload = [Convert]::FromBase64String('${b64}')
+$proc = $null
+foreach ($tn in $targets) {
+    $base = $tn -replace '\\.exe$',''
+    $p = Get-Process -Name $base -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($p) { $proc = $p; Write-Host "[+] Found: $($p.ProcessName) PID=$($p.Id)"; break }
+}
+if (-not $proc) { Write-Host "[!] Target not running."; Read-Host "Enter"; exit 1 }
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class W {
+  [DllImport("kernel32.dll")] public static extern IntPtr OpenProcess(uint a, bool b, int c);
+  [DllImport("kernel32.dll")] public static extern IntPtr VirtualAllocEx(IntPtr h, IntPtr a, uint s, uint t, uint p);
+  [DllImport("kernel32.dll")] public static extern bool WriteProcessMemory(IntPtr h, IntPtr a, byte[] b, uint s, out uint w);
+  [DllImport("kernel32.dll")] public static extern IntPtr CreateRemoteThread(IntPtr h, IntPtr a, uint s, IntPtr f, IntPtr p, uint c, IntPtr id);
+  [DllImport("kernel32.dll")] public static extern IntPtr GetProcAddress(IntPtr m, string n);
+  [DllImport("kernel32.dll")] public static extern IntPtr GetModuleHandle(string n);
+}
+"@
+$dll = Join-Path $env:TEMP "pilaf_payload.dll"
+[IO.File]::WriteAllBytes($dll, $payload)
+$h = [W]::OpenProcess(0x1F0FFF, $false, $proc.Id)
+$bytes = [Text.Encoding]::ASCII.GetBytes($dll + [char]0)
+$mem = [W]::VirtualAllocEx($h, [IntPtr]::Zero, [uint32]$bytes.Length, 0x3000, 0x04)
+$wr = 0
+[W]::WriteProcessMemory($h, $mem, $bytes, [uint32]$bytes.Length, [ref]$wr) | Out-Null
+$k32 = [W]::GetModuleHandle("kernel32.dll")
+$ll = [W]::GetProcAddress($k32, "LoadLibraryA")
+$th = [W]::CreateRemoteThread($h, [IntPtr]::Zero, 0, $ll, $mem, 0, [IntPtr]::Zero)
+Write-Host "[+] INJECTED into $($proc.ProcessName)"
+Start-Sleep 2
+`;
+}
+
+/* ============ VECTOR UI ============ */
+function mkVector(name){
+  const el = document.createElement("div");
+  el.className = "vec";
+  el.innerHTML = `<span class="n">${name}</span><span class="st">idle</span>`;
+  $("#vectors").appendChild(el);
+  return {
+    set(s, t) {
+      el.className = "vec " + s;
+      el.querySelector(".st").textContent = t || s;
+    }
+  };
+}
+
+async function tryBridge(plat, v){
+  for (const port of BRIDGE_PORTS) {
+    try {
+      const sr = await fetch(`http://127.0.0.1:${port}/status`, { signal: timeout(600) });
+      if (!sr.ok) continue;
+      const info = await sr.json().catch(() => ({}));
+      v.set("run", `:${port} ${info.agent || ""}`.trim());
+      const ir = await fetch(`http://127.0.0.1:${port}/inject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          target: plat.targets[0],
+          code: payloadCache,
+          platform: plat.os,
+          key: currentKey,
+          hwid: currentDeviceId
+        }),
+        signal: timeout(6000)
+      });
+      if (ir.ok) {
+        const j = await ir.json().catch(() => ({}));
+        if (j.status === "ok") {
+          v.set("ok", j.method || "injected");
+          return { port, method: j.method, pid: j.pid };
+        }
+      }
+    } catch(_) {}
+  }
+  v.set("fail", "no agent");
+  return null;
+}
+
+/* ============ MAIN TOGGLE ============ */
+function handleToggle(){
+  const row = $("#switchRow");
+  const log = $("#injectLog");
+  const sub = $("#switchSub");
+  const on = row.classList.toggle("on");
+  $("#vectors").innerHTML = "";
+  log.innerHTML = "";
+
+  if (!on) {
+    sub.textContent = "Khởi động pipeline đa vector";
+    L(log, "Disabled.", "info");
+    return;
+  }
+
+  if (!payloadB64) {
+    L(log, "⚠ Chưa có payload! Kéo thả file code.txt vào ô phía trên.", "err");
+    $("#dropZone").style.display = "block";
+    
+    // Hiệu ứng rung lắc báo lỗi
+    const dz = $("#dropZone");
+    dz.classList.remove("shake");
+    void dz.offsetWidth; // trigger reflow
+    dz.classList.add("shake");
+
+    row.classList.remove("on");
+    sub.textContent = "⚠ Chưa có payload";
+    return;
+  }
+
+  const plat = getPlatform();
+  sub.textContent = "Firing " + plat.label + "...";
+  L(log, `Platform: ${plat.label}`, "ok");
+  L(log, `Payload: ${payloadCache.length}B`, "ok");
+
+  /* ---- SYNC VECTORS ---- */
+  
+  // 1. Clipboard
+  const vClip = mkVector("📋 Clipboard");
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(payloadCache)
+      .then(() => vClip.set("ok", "copied"))
+      .catch(e => vClip.set("fail", e.name || "err"));
+  } else vClip.set("na", "no api");
+
+  // 2. Native Scheme (intent:// | shortcuts://)
+  const vScheme = mkVector("🔗 " + plat.os.toUpperCase() + " Scheme");
+  try {
+    fireIframe(buildSchemeUrl(plat));
+    vScheme.set("ok", "fired");
+  } catch(e) { vScheme.set("fail", "err"); }
+
+  // 3. Custom Protocol (pilaf://)
+  const vProto = mkVector("🌐 pilaf:// Protocol");
+  try {
+    fireIframe("pilaf://inject?p=" + encodeURIComponent(payloadB64.slice(0, 6000)) +
+               "&k=" + encodeURIComponent(currentKey));
+    vProto.set("ok", "fired");
+  } catch(e) { vProto.set("fail", "err"); }
+
+  /* ---- ASYNC VECTORS ---- */
+  (async () => {
+    // 4. HTTP Bridge
+    const vBridge = mkVector("📡 HTTP Bridge");
+    vBridge.set("run", "probe");
+    const br = await tryBridge(plat, vBridge);
+    
+    if (!br) {
+      // 5. Auto-Retry
+      const vRetry = mkVector("🔄 Auto-Retry 30s");
+      vRetry.set("run", "0/10");
+      let ok = false;
+      for (let i = 1; i <= 10; i++) {
+        await sleep(3000);
+        vRetry.set("run", `${i}/10`);
+        const r = await tryBridge(plat, vRetry);
+        if (r) { vRetry.set("ok", `:${r.port}`); ok = true; break; }
+      }
+      if (!ok) vRetry.set("fail", "timeout");
+    }
+
+    // 6. PS1 Injector (PC Only)
+    if (plat.os === "pc") {
+      const vPS = mkVector("💾 PS1 Injector");
+      try {
+        const ps = generatePS1(payloadB64, plat.targets);
+        downloadFile("PILAF_INJECT.ps1", ps, "text/plain");
+        vPS.set("ok", "downloaded");
+        L(log, "Đã tải PILAF_INJECT.ps1 (Chuột phải → Run with PowerShell)", "warn");
+      } catch(e) { vPS.set("fail", "err"); }
+    }
+
+    const okCount = $("#vectors").querySelectorAll(".vec.ok").length;
+    if (br) sub.textContent = "✓ Injected via Bridge";
+    else sub.textContent = `Fired ${okCount} vectors`;
+    
+    L(log, `Done. Success: ${okCount} vector(s)`, okCount > 0 ? "ok" : "warn");
+  })().catch(e => {
+    L(log, "Error: " + e.message, "err");
+  });
+}
+
+/* ============ EVENTS ============ */
+$("#btnActivate").addEventListener("click", activateKey);
+$("#licenseInput").addEventListener("keydown", e => { if (e.key === "Enter") activateKey(); });
+$("#licenseInput").addEventListener("input", e => {
+  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "");
+});
+$("#switchRow").addEventListener("click", handleToggle);
+
+/* ============ BOOT ============ */
+(async function boot(){
+  loadKeyHistory();
+  setupDropzone();
+  
+  const plat = getPlatform();
+  $("#devBadge").textContent = `DEVICE: ${plat.label} · ${plat.targets[0]}`;
+  
+  try { currentDeviceId = await getDeviceId(); showHwid(currentDeviceId); } catch(_) {}
+  
+  const ok = await preloadPayload();
+  if (!ok) $("#dropZone").style.display = "block";
+
+  try { await tryAutoLogin(); } catch(_) {}
+})();
+
+})();
+</script>
+</body>
+</html>
