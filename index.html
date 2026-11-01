@@ -6,26 +6,20 @@
 <title>PILAF // INJECTOR</title>
 <style>
 :root{
-  --acc:#00f0ff; --acc2:#ff2bd6; --bg:#05070d;
-  --line:rgba(0,240,255,.18); --txt:#c8d6e5; --dim:#54677a;
-  --ok:#00ff88; --err:#ff3355; --warn:#ffaa00;
+  --acc:#00f0ff;--acc2:#ff2bd6;--bg:#05070d;--line:rgba(0,240,255,.18);
+  --txt:#c8d6e5;--dim:#54677a;--ok:#00ff88;--err:#ff3355;--warn:#ffaa00;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
 body{
   background:radial-gradient(circle at 50% 30%,#0d1626 0%,var(--bg) 65%);
-  font-family:"Consolas","JetBrains Mono",monospace;
-  color:var(--txt);min-height:100vh;display:grid;place-items:center;
-  padding:16px;overflow-x:hidden;
+  font-family:"Consolas","JetBrains Mono",monospace;color:var(--txt);
+  min-height:100vh;display:grid;place-items:center;padding:16px;overflow-x:hidden;
 }
-.page{
-  width:460px;max-width:96vw;display:none;flex-direction:column;
-  background:linear-gradient(160deg,#0a0e1a,#05070d);
-  border:1px solid var(--line);
+.page{width:460px;max-width:96vw;display:none;flex-direction:column;
+  background:linear-gradient(160deg,#0a0e1a,#05070d);border:1px solid var(--line);
   clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
-  box-shadow:0 0 40px rgba(0,240,255,.08);
-  padding:22px;gap:11px;
-}
+  box-shadow:0 0 40px rgba(0,240,255,.08);padding:22px;gap:11px}
 .page.active{display:flex;animation:fade .3s}
 @keyframes fade{from{opacity:0;transform:translateY(8px)}}
 header{display:flex;align-items:center;justify-content:space-between;
@@ -39,44 +33,30 @@ header{display:flex;align-items:center;justify-content:space-between;
 h2{font-size:11px;letter-spacing:2px;color:var(--dim);font-weight:400;text-transform:uppercase}
 p.hint{font-size:11px;color:var(--dim);line-height:1.6}
 p.hint b{color:var(--acc2)}
-input[type=text]{
-  width:100%;padding:11px 13px;background:rgba(0,240,255,.04);
+input[type=text]{width:100%;padding:11px 13px;background:rgba(0,240,255,.04);
   border:1px solid var(--line);color:var(--acc);font-family:inherit;
-  font-size:12px;letter-spacing:2px;outline:none;transition:.2s;
-}
+  font-size:12px;letter-spacing:2px;outline:none;transition:.2s}
 input[type=text]:focus{border-color:var(--acc);box-shadow:0 0 14px rgba(0,240,255,.25)}
 input[type=text]::placeholder{color:var(--dim);letter-spacing:1px;font-size:10px}
-button{
-  width:100%;padding:11px;background:linear-gradient(135deg,#00f0ff,#7a5cff 60%,#ff2bd6);
+button{width:100%;padding:11px;background:linear-gradient(135deg,#00f0ff,#7a5cff 60%,#ff2bd6);
   border:none;color:#fff;font-family:inherit;font-size:11px;font-weight:700;
   letter-spacing:2px;cursor:pointer;transition:.2s;text-transform:uppercase;
-  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
-}
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
 button:hover{filter:brightness(1.15);box-shadow:0 0 18px rgba(0,240,255,.4)}
 button:disabled{filter:grayscale(1);cursor:not-allowed;opacity:.5}
 .log{font-size:9.5px;line-height:1.85;color:var(--dim);
   background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);
   padding:9px;max-height:160px;overflow-y:auto;white-space:pre-wrap;
   word-break:break-word;letter-spacing:.3px}
-.log .ok{color:var(--ok)} .log .err{color:var(--err)}
-.log .info{color:var(--acc)} .log .warn{color:var(--warn)}
-.log .stage{color:#fff;font-weight:700}
-
-/* KHU VỰC KÉO THẢ ĐƯỢC LÀM NỔI BẬT */
-.dropzone { 
-  display:none; padding:16px 10px; text-align:center; font-size:11px; font-weight:bold; letter-spacing:1px;
-  border:2px dashed var(--acc); color:var(--acc); background:rgba(0,240,255,.08);
-  cursor:pointer; transition: 0.2s; margin-bottom:6px; border-radius:4px;
-}
-.dropzone:hover { background:rgba(0,240,255,.2); box-shadow: 0 0 15px rgba(0,240,255,.3); }
-.dropzone input { display:none; }
-.dropzone.shake { animation: shake 0.4s ease-in-out; border-color: var(--err); color: var(--err); background: rgba(255,51,85,.1); }
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}
-
+.log .ok{color:var(--ok)}.log .err{color:var(--err)}
+.log .info{color:var(--acc)}.log .warn{color:var(--warn)}.log .stage{color:#fff;font-weight:700}
+.dropzone{display:none;padding:16px 10px;text-align:center;font-size:11px;font-weight:bold;
+  letter-spacing:1px;border:2px dashed var(--acc);color:var(--acc);background:rgba(0,240,255,.08);
+  cursor:pointer;transition:.2s;margin-bottom:6px;border-radius:4px}
+.dropzone:hover{background:rgba(0,240,255,.2);box-shadow:0 0 15px rgba(0,240,255,.3)}
+.dropzone input{display:none}
+.dropzone.shake{animation:shake .4s ease-in-out;border-color:var(--err);color:var(--err);background:rgba(255,51,85,.1)}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 .switch-row{display:flex;align-items:center;justify-content:space-between;
   padding:11px;background:rgba(255,255,255,.02);
   border-left:2px solid var(--line);transition:.2s;cursor:pointer;user-select:none}
@@ -91,22 +71,20 @@ button:disabled{filter:grayscale(1);cursor:not-allowed;opacity:.5}
 .switch-row.on .sw{background:rgba(0,240,255,.16);border-color:var(--acc);
   box-shadow:inset 0 0 12px rgba(0,240,255,.4),0 0 10px rgba(0,240,255,.2)}
 .switch-row.on .sw::after{left:22px;background:var(--acc);box-shadow:0 0 10px var(--acc)}
-
-#vectors{display:none;flex-direction:column;gap:3px}
+#vectors{display:none;flex-direction:column;gap:2px;max-height:260px;overflow-y:auto}
 #vectors:not(:empty){display:flex}
 .vec{display:flex;justify-content:space-between;align-items:center;
-  padding:6px 10px;background:rgba(0,0,0,.4);border-left:2px solid var(--line);
-  font-size:9.5px;letter-spacing:.5px;transition:.2s}
-.vec .n{color:var(--dim)}
-.vec .st{font-weight:700;letter-spacing:1px;color:var(--dim)}
+  padding:5px 9px;background:rgba(0,0,0,.4);border-left:2px solid var(--line);
+  font-size:9px;letter-spacing:.4px;transition:.15s}
+.vec .n{color:var(--dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vec .st{font-weight:700;letter-spacing:1px;color:var(--dim);flex:none;margin-left:8px}
 .vec.run{border-left-color:var(--warn);background:rgba(255,170,0,.05)}
-.vec.run .st{color:var(--warn);animation:pulse 1s infinite}
+.vec.run .st{color:var(--warn);animation:pulse .8s infinite}
 .vec.ok{border-left-color:var(--ok);background:rgba(0,255,136,.06)}
 .vec.ok .st{color:var(--ok)}
 .vec.fail{border-left-color:var(--err)}
 .vec.fail .st{color:var(--err)}
 .vec.na{border-left-color:var(--dim);opacity:.5}
-
 .contact{display:flex;align-items:center;justify-content:space-between;
   padding:9px 11px;background:rgba(255,43,214,.04);
   border:1px solid rgba(255,43,214,.2);font-size:10.5px;letter-spacing:1px}
@@ -145,16 +123,14 @@ button:disabled{filter:grayscale(1);cursor:not-allowed;opacity:.5}
     <div class="logo">PILAF<span>INJECTOR</span></div>
     <div class="badge"><span class="dot"></span>ONLINE</div>
   </header>
-
   <div class="dropzone" id="dropZone">
     📥 KÉO THẢ HOẶC CLICK ĐỂ NẠP <b>code.txt</b>
     <input type="file" id="fileInput" accept=".txt">
   </div>
-
   <div class="switch-row" id="switchRow">
     <div>
       <div class="label">⚡ ENABLE INJECT</div>
-      <div class="sub" id="switchSub">Khởi động pipeline đa vector</div>
+      <div class="sub" id="switchSub">Khởi động pipeline</div>
     </div>
     <div class="sw"></div>
   </div>
@@ -175,7 +151,7 @@ button:disabled{filter:grayscale(1);cursor:not-allowed;opacity:.5}
 "use strict";
 
 const FIREBASE_URL = "https://meowmeow-e6c41-default-rtdb.asia-southeast1.firebasedatabase.app/";
-const BRIDGE_PORTS = [27777, 27778, 8888, 8080, 3000, 9090, 1234];
+const BRIDGE_PORTS = [27777,27778,8888,8080,3000,9090,1234,5000,7000,8081,8889,9999,25565,27015,4444,1337];
 const LS_SESSION   = "pilaf_session_v1";
 const LS_LAST_KEY  = "pilaf_last_key";
 const LS_HISTORY   = "pilaf_key_history";
@@ -195,6 +171,7 @@ let currentKey = "";
 let payloadCache = "";
 let payloadB64 = "";
 let activePlatform = null;
+let swReg = null;
 
 function L(el, m, c = "info") {
   const t = new Date().toLocaleTimeString("vi-VN");
@@ -202,7 +179,7 @@ function L(el, m, c = "info") {
   el.scrollTop = el.scrollHeight;
 }
 
-/* ============ PAYLOAD SETUP ============ */
+/* ============ PAYLOAD ============ */
 function setPayload(text) {
   payloadCache = text;
   try { localStorage.setItem(LS_PAYLOAD, text); } catch(_) {}
@@ -212,6 +189,10 @@ function setPayload(text) {
   payloadB64 = btoa(bin);
   $("#dropZone").style.display = "none";
   $("#switchSub").textContent = `Ready: ${payloadCache.length}B`;
+  // Push vào service worker cache
+  if (swReg && swReg.active) {
+    try { swReg.active.postMessage({ type: "SET_PAYLOAD", data: text }); } catch(_) {}
+  }
 }
 
 async function preloadPayload() {
@@ -219,15 +200,14 @@ async function preloadPayload() {
     const cached = localStorage.getItem(LS_PAYLOAD);
     if (cached && cached.trim()) {
       setPayload(cached);
-      fetchRemotePayload().then(ok => { if (ok) L($("#injectLog"), "Payload updated from server", "ok"); }).catch(()=>{});
+      fetchRemotePayload().then(ok => { if (ok) L($("#injectLog"), "Payload updated", "ok"); }).catch(()=>{});
       return true;
     }
   } catch(_) {}
-
   const ok = await fetchRemotePayload();
   if (!ok) {
     if (location.protocol === "file:") {
-      L($("#injectLog"), "Chạy Local (file://) — trình duyệt chặn đọc file. Hãy kéo thả code.txt vào ô.", "warn");
+      L($("#injectLog"), "file:// → kéo thả code.txt", "warn");
     }
     $("#dropZone").style.display = "block";
     return false;
@@ -236,7 +216,7 @@ async function preloadPayload() {
 }
 
 async function fetchRemotePayload() {
-  const files = ["code.txt", "./code.txt", "code.TXT", "CODE.txt", "Code.txt", "payload.txt"];
+  const files = ["code.txt","./code.txt","code.TXT","CODE.txt","Code.txt","payload.txt"];
   for (const f of files) {
     try {
       const r = await fetch(f + "?v=" + Date.now(), { cache: "no-store" });
@@ -251,34 +231,60 @@ async function fetchRemotePayload() {
 }
 
 function setupDropzone() {
-  const dz = $("#dropZone");
-  const fi = $("#fileInput");
-  
+  const dz = $("#dropZone"), fi = $("#fileInput");
   const updateUI = () => {
-    L($("#injectLog"), `Payload loaded: ${payloadCache.length}B`, "ok");
+    L($("#injectLog"), `Payload: ${payloadCache.length}B`, "ok");
     dz.classList.remove("shake");
   };
-
-  dz.onclick = (e) => { if (e.target.tagName !== 'INPUT') fi.click(); };
-  
+  dz.onclick = e => { if (e.target.tagName !== 'INPUT') fi.click(); };
   fi.onchange = async () => {
     if (fi.files.length) {
       const t = await fi.files[0].text();
       if (t.trim()) { setPayload(t); updateUI(); }
     }
   };
-
   dz.ondragover = e => { e.preventDefault(); dz.style.background = "rgba(0,240,255,.2)"; };
   dz.ondragleave = e => { e.preventDefault(); dz.style.background = ""; };
-  
   dz.ondrop = async e => {
-    e.preventDefault();
-    dz.style.background = "";
+    e.preventDefault(); dz.style.background = "";
     if (e.dataTransfer.files.length) {
       const t = await e.dataTransfer.files[0].text();
       if (t.trim()) { setPayload(t); updateUI(); }
     }
   };
+}
+
+/* ============ SERVICE WORKER ============ */
+async function initSW() {
+  if (!("serviceWorker" in navigator)) return false;
+  try {
+    const code = `
+      let PAYLOAD = "";
+      self.addEventListener('install', e => self.skipWaiting());
+      self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+      self.addEventListener('message', e => {
+        if (e.data.type === 'SET_PAYLOAD') {
+          PAYLOAD = e.data.data;
+          self.registration.active && self.registration.active.postMessage({type:'ACK'});
+        }
+        if (e.data.type === 'GET_PAYLOAD') {
+          e.ports[0] && e.ports[0].postMessage(PAYLOAD);
+        }
+      });
+      self.addEventListener('fetch', e => {
+        const u = new URL(e.request.url);
+        if (u.pathname === '/pilaf-payload') {
+          e.respondWith(new Response(PAYLOAD, {
+            headers: {'Content-Type':'text/plain','Access-Control-Allow-Origin':'*'}
+          }));
+        }
+      });
+    `;
+    const blob = new Blob([code], { type: "application/javascript" });
+    const url = URL.createObjectURL(blob);
+    swReg = await navigator.serviceWorker.register(url, { scope: "./" });
+    return true;
+  } catch(_) { return false; }
 }
 
 /* ============ FINGERPRINT ============ */
@@ -314,64 +320,320 @@ function showHwid(id){ $("#hwidShort").textContent = id ? id.slice(0,8) + "…" 
 /* ============ PLATFORM ============ */
 function detectPlatform(){
   const ua = navigator.userAgent || "", pf = navigator.platform || "";
-  if (/Android/i.test(ua))
-    return { os:"android", targets:["com.dts.freefireth","com.dts.freefiremax"], label:"ANDROID" };
-  if (/iPhone|iPad|iPod/i.test(ua) || (/Mac/i.test(pf) && "ontouchend" in document))
-    return { os:"ios", targets:["com.dts.freefireth","com.dts.freefiremax"], label:"iOS" };
-  return { os:"pc", targets:["HD-player.exe","com.dts.freefireth","com.dts.freefiremax"], label:"PC/WINDOWS" };
+  if (/Android/i.test(ua)) return { os:"android", label:"ANDROID" };
+  if (/iPhone|iPad|iPod/i.test(ua) || (/Mac/i.test(pf) && "ontouchend" in document)) return { os:"ios", label:"iOS" };
+  return { os:"pc", label:"PC/WINDOWS" };
 }
 function getPlatform(){ return activePlatform || (activePlatform = detectPlatform()); }
 
-/* ============ FIREBASE ============ */
-async function fbGet(p){
-  const r = await fetch(`${FIREBASE_URL}${p}.json`);
-  if (!r.ok) throw new Error("FB " + r.status);
-  return r.json();
+/* ============ SCHEME MAP (ĐA TARGET SONG SONG) ============ */
+function buildAllSchemes(plat) {
+  const k = encodeURIComponent(currentKey);
+  const h = encodeURIComponent(currentDeviceId);
+  const p = encodeURIComponent(payloadB64.slice(0, 6000));
+  const list = [];
+
+  if (plat.os === "android") {
+    const pkgs = ["com.dts.freefireth","com.dts.freefiremax","com.dts.freefiremax.lite","com.dts.freefire"];
+    for (const pkg of pkgs) {
+      const fb = encodeURIComponent(`https://play.google.com/store/apps/details?id=${pkg}`);
+      list.push({
+        name: `intent://${pkg.split('.').pop()}`,
+        url: `intent://inject?k=${k}&h=${h}#Intent;scheme=pilaf;package=${pkg};` +
+             `S.pilaf_key=${k};S.pilaf_hwid=${h};S.pilaf_payload=${p};` +
+             `browser_fallback_url=${fb};end`
+      });
+      list.push({
+        name: `market://${pkg.split('.').pop()}`,
+        url: `market://details?id=${pkg}&referrer=pilaf_${encodeURIComponent(currentKey)}`
+      });
+    }
+    list.push({ name: "freefire://", url: `freefire://open?p=${p}&k=${k}` });
+    list.push({ name: "pilaf://", url: `pilaf://inject?p=${p}&k=${k}&h=${h}` });
+    list.push({ name: "intent broadcast", url: `intent:#Intent;action=com.pilaf.INJECT;S.pilaf_payload=${p};end` });
+  }
+  else if (plat.os === "ios") {
+    list.push({ name: "freefire://", url: `freefire://inject?p=${p}&k=${k}` });
+    list.push({ name: "shortcuts://", url: `shortcuts://run-shortcut?name=PILAF-Inject&input=text&text=${p}` });
+    list.push({ name: "shortcuts import", url: `shortcuts://import-workflow?name=PILAF&url=${encodeURIComponent("https://meowmeow-e6c41-default-rtdb.asia-southeast1.firebasedatabase.app/keys/"+currentKey+".json")}` });
+    list.push({ name: "pilaf://", url: `pilaf://inject?p=${p}&k=${k}&h=${h}` });
+    list.push({ name: "itms-apps", url: `itms-apps://itunes.apple.com/app/id${"com.dts.freefireth"}` });
+  }
+  else {
+    const emus = ["bluestacks://","ldplayer://","memu://","nox://","gameloop://","pilaf://"];
+    for (const e of emus) {
+      list.push({ name: e.replace("://",""), url: `${e}inject?p=${p}&k=${k}&h=${h}&target=HD-player.exe` });
+    }
+    list.push({ name: "steam://", url: `steam://rungameid/0?pilaf=${p}` });
+  }
+  return list;
 }
-async function fbPut(p, o){
-  const r = await fetch(`${FIREBASE_URL}${p}.json`, {
-    method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(o)
+
+function fireIframe(url, timeoutMs) {
+  return new Promise(resolve => {
+    const f = document.createElement("iframe");
+    f.style.cssText = "position:absolute;width:1px;height:1px;left:-9999px;border:0;opacity:0;pointer-events:none";
+    f.src = url;
+    let done = false;
+    const finish = () => { if (done) return; done = true; try { f.remove(); } catch(_) {} resolve(true); };
+    document.body.appendChild(f);
+    setTimeout(finish, timeoutMs || 800);
   });
-  if (!r.ok) throw new Error("FB " + r.status);
-  return r.json();
 }
 
-/* ============ KEY HISTORY ============ */
-function loadKeyHistory(){
+/* ============ CLIPBOARD MULTI-MIME ============ */
+async function multiClipboard() {
+  if (!navigator.clipboard) return false;
   try {
-    const last = localStorage.getItem(LS_LAST_KEY);
-    if (last) $("#licenseInput").value = last;
-    const hist = JSON.parse(localStorage.getItem(LS_HISTORY) || "[]");
-    const dl = $("#keyHist"); dl.innerHTML = "";
-    hist.forEach(k => { const o = document.createElement("option"); o.value = k; dl.appendChild(o); });
+    if (typeof ClipboardItem !== "undefined" && navigator.clipboard.write) {
+      const items = {};
+      try { items["text/plain"] = new Blob([payloadCache], { type: "text/plain" }); } catch(_) {}
+      try { items["text/html"] = new Blob([`<pre data-pilaf="1">${payloadCache.replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</pre>`], { type: "text/html" }); } catch(_) {}
+      // Custom MIME (một số browser hỗ trợ, một số không)
+      try { items["application/x-pilaf-payload"] = new Blob([JSON.stringify({ k: currentKey, h: currentDeviceId, p: payloadB64.slice(0,6000) })], { type: "application/x-pilaf-payload" }); } catch(_) {}
+      await navigator.clipboard.write([new ClipboardItem(items)]);
+      return true;
+    }
   } catch(_) {}
-}
-function saveKeyHistory(k){
-  try {
-    localStorage.setItem(LS_LAST_KEY, k);
-    let h = [];
-    try { h = JSON.parse(localStorage.getItem(LS_HISTORY) || "[]"); } catch(_) {}
-    h = [k, ...h.filter(x => x !== k)].slice(0, 8);
-    localStorage.setItem(LS_HISTORY, JSON.stringify(h));
-    loadKeyHistory();
-  } catch(_) {}
+  // Fallback text
+  try { await navigator.clipboard.writeText(payloadCache); return true; } catch(_) {}
+  return false;
 }
 
-/* ============ AUTH ============ */
-async function activateKey(){
-  const log = $("#authLog");
-  const btn = $("#btnActivate");
+/* ============ WEB SHARE FILE ============ */
+async function webShareFile() {
+  if (!navigator.share) return false;
+  try {
+    const file = new File([payloadCache], "code.txt", { type: "text/plain" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: "PILAF", text: "inject payload" });
+      return true;
+    }
+    await navigator.share({ title: "PILAF", text: payloadB64.slice(0, 2000) });
+    return true;
+  } catch(_) { return false; }
+}
+
+/* ============ BEACON BARRAGE ============ */
+async function beaconBarrage() {
+  let hits = 0;
+  await Promise.allSettled(BRIDGE_PORTS.map(async port => {
+    try {
+      const r = await fetch(`http://127.0.0.1:${port}/pilaf-beacon`, {
+        method: "POST", mode: "no-cors",
+        body: JSON.stringify({ k: currentKey, h: currentDeviceId, p: payloadB64.slice(0, 4000) }),
+        signal: timeout(700)
+      });
+      hits++;
+      return r;
+    } catch(_) {}
+  }));
+  return hits;
+}
+
+/* ============ BRIDGE INJECT ============ */
+async function tryBridge(v) {
+  for (const port of BRIDGE_PORTS) {
+    try {
+      const sr = await fetch(`http://127.0.0.1:${port}/status`, { signal: timeout(500) });
+      if (!sr.ok) continue;
+      const info = await sr.json().catch(() => ({}));
+      v.set("run", `:${port}`);
+      const ir = await fetch(`http://127.0.0.1:${port}/inject`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          target: getPlatform().os === "pc" ? "HD-player.exe" : "com.dts.freefireth",
+          code: payloadCache, platform: getPlatform().os,
+          key: currentKey, hwid: currentDeviceId
+        }),
+        signal: timeout(6000)
+      });
+      if (ir.ok) {
+        const j = await ir.json().catch(() => ({}));
+        if (j.status === "ok") { v.set("ok", j.method || "ok"); return j; }
+      }
+    } catch(_) {}
+  }
+  v.set("fail", "no agent");
+  return null;
+}
+
+/* ============ WEBRTC FIREBASE SIGNALING ============ */
+async function rtcFirebase(v) {
+  if (!window.RTCPeerConnection) { v.set("na", "no rtc"); return false; }
+  try {
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+    });
+    const dc = pc.createDataChannel("pilaf");
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    // Push offer lên Firebase
+    const path = `webrtc/${currentKey}/offer`;
+    const putR = await fetch(`${FIREBASE_URL}${path}.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sdp: offer.sdp, type: offer.type,
+        hwid: currentDeviceId, target: getPlatform().os,
+        ts: Date.now()
+      })
+    });
+    if (!putR.ok) { v.set("fail", "fb err"); return false; }
+
+    v.set("run", "wait answer");
+    // Poll answer 15s
+    for (let i = 0; i < 15; i++) {
+      await sleep(1000);
+      try {
+        const ar = await fetch(`${FIREBASE_URL}webrtc/${currentKey}/answer.json`, { signal: timeout(800) });
+        if (!ar.ok) continue;
+        const ans = await ar.json();
+        if (!ans || !ans.sdp) continue;
+        await pc.setRemoteDescription(new RTCSessionDescription(ans));
+        v.set("run", "ice");
+        // Chờ DataChannel mở
+        const ok = await new Promise(resolve => {
+          let done = false;
+          dc.onopen = () => {
+            if (done) return; done = true;
+            dc.send(JSON.stringify({
+              k: currentKey, h: currentDeviceId,
+              t: getPlatform().os, p: payloadB64
+            }));
+            resolve(true);
+          };
+          setTimeout(() => { if (!done) { done = true; resolve(false); } }, 5000);
+        });
+        if (ok) { v.set("ok", "delivered"); return true; }
+        v.set("fail", "dc timeout");
+        return false;
+      } catch(_) {}
+    }
+    v.set("fail", "no answer");
+    return false;
+  } catch(e) {
+    v.set("fail", e.name || "rtc err");
+    return false;
+  }
+}
+
+/* ============ VECTOR UI ============ */
+function mkVector(name) {
+  const el = document.createElement("div");
+  el.className = "vec";
+  el.innerHTML = `<span class="n">${name}</span><span class="st">idle</span>`;
+  $("#vectors").appendChild(el);
+  return {
+    set(s, t) { el.className = "vec " + s; el.querySelector(".st").textContent = t || s; }
+  };
+}
+
+/* ============ MAIN TOGGLE ============ */
+function handleToggle(){
+  const row = $("#switchRow"), log = $("#injectLog"), sub = $("#switchSub");
+  const on = row.classList.toggle("on");
+  $("#vectors").innerHTML = "";
+  log.innerHTML = "";
+  if (!on) { sub.textContent = "Khởi động pipeline"; L(log, "Disabled.", "info"); return; }
+
+  if (!payloadB64) {
+    L(log, "⚠ Chưa có payload! Kéo thả code.txt.", "err");
+    $("#dropZone").style.display = "block";
+    const dz = $("#dropZone");
+    dz.classList.remove("shake"); void dz.offsetWidth; dz.classList.add("shake");
+    row.classList.remove("on");
+    sub.textContent = "⚠ Chưa có payload";
+    return;
+  }
+
+  const plat = getPlatform();
+  sub.textContent = "POWER MODE · " + plat.label;
+  L(log, `Platform: ${plat.label}`, "ok");
+  L(log, `Payload: ${payloadCache.length}B`, "ok");
+
+  /* ========== SYNC BLOCK (fire song song ngay) ========== */
+
+  // V1: Multi-MIME Clipboard
+  const vClip = mkVector("📋 Clipboard [multi-MIME]");
+  vClip.set("run");
+  multiClipboard().then(ok => vClip.set(ok ? "ok" : "fail", ok ? "written" : "denied"));
+
+  // V2: Web Share File
+  const vShare = mkVector("📤 Web Share [file]");
+  vShare.set("run");
+  webShareFile().then(ok => vShare.set(ok ? "ok" : "fail", ok ? "shared" : "denied"));
+
+  // V3: PARALLEL Scheme Barrage
+  const schemes = buildAllSchemes(plat);
+  L(log, `Firing ${schemes.length} schemes parallel...`, "info");
+  const vSchemes = mkVector(`🔗 Scheme Barrage [${schemes.length}]`);
+  vSchemes.set("run", "0/" + schemes.length);
+  let fired = 0;
+  Promise.allSettled(schemes.map((s, i) =>
+    fireIframe(s.url, 600 + i * 20).then(ok => { fired++; vSchemes.set("run", `${fired}/${schemes.length}`); })
+  )).then(() => {
+    vSchemes.set("ok", `${fired}/${schemes.length}`);
+  });
+
+  // V4: Service Worker payload endpoint
+  const vSW = mkVector("⚙ Service Worker");
+  if (swReg && swReg.active) {
+    vSW.set("ok", "endpoint ready");
+  } else vSW.set("na", "no sw");
+
+  /* ========== ASYNC BLOCK ========== */
+
+  (async () => {
+    // V5: Beacon Barrage (fire + forget)
+    const vBeacon = mkVector("📡 Beacon Barrage [" + BRIDGE_PORTS.length + "]");
+    vBeacon.set("run");
+    const hits = await beaconBarrage();
+    vBeacon.set(hits > 0 ? "ok" : "na", `${hits}/${BRIDGE_PORTS.length}`);
+
+    // V6: HTTP Bridge (inject thật nếu agent trả lời)
+    const vBridge = mkVector("🔌 HTTP Bridge");
+    vBridge.set("run");
+    const br = await tryBridge(vBridge);
+    if (br) {
+      L(log, `✓ Injected via bridge: ${br.method || "?"}`, "ok");
+      sub.textContent = "✓ INJECTED";
+      return;
+    }
+
+    // V7: WebRTC Firebase P2P
+    const vRTC = mkVector("🌐 WebRTC · Firebase");
+    vRTC.set("run");
+    const rtcOk = await rtcFirebase(vRTC);
+    if (rtcOk) {
+      L(log, "✓ Delivered via WebRTC P2P", "ok");
+      sub.textContent = "✓ DELIVERED (P2P)";
+      return;
+    }
+
+    // Summary
+    const okCount = $("#vectors").querySelectorAll(".vec.ok").length;
+    const firedCount = $("#vectors").querySelectorAll(".vec.ok,.vec.fail").length;
+    sub.textContent = `${okCount}/${firedCount} vectors success`;
+    L(log, `Pipeline done. Success: ${okCount} vectors`, okCount > 0 ? "ok" : "warn");
+  })().catch(e => L(log, "Error: " + e.message, "err"));
+}
+
+/* ============ EVENTS ============ */
+$("#btnActivate").addEventListener("click", async () => {
+  const log = $("#authLog"), btn = $("#btnActivate");
   const key = $("#licenseInput").value.trim().toUpperCase();
   log.innerHTML = "";
   const A = (m,c="info") => L(log, m, c);
-
   if (!/^PILAF-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key)) { A("Sai định dạng.","err"); return; }
   btn.disabled = true; btn.textContent = "ĐANG XÁC THỰC...";
   A("Firebase...");
-
   try {
     if (!currentDeviceId) { currentDeviceId = await getDeviceId(); showHwid(currentDeviceId); }
-    const node = await fbGet(`keys/${key}`);
+    const r = await fetch(`${FIREBASE_URL}keys/${key}.json`);
+    if (!r.ok) throw new Error("FB " + r.status);
+    const node = await r.json();
     if (!node) { A("Key không tồn tại.","err"); return; }
     if (node.active !== true) { A("Key bị vô hiệu.","err"); return; }
     if (node.expiryDate !== "PERMANENT") {
@@ -380,283 +642,39 @@ async function activateKey(){
     }
     if (node.hwid && node.hwid !== currentDeviceId) { A("Key khóa thiết bị khác.","err"); return; }
     if (!node.hwid) {
-      await fbPut(`keys/${key}/hwid`, currentDeviceId);
-      await fbPut(`keys/${key}/activatedAt`, new Date().toISOString());
+      await fetch(`${FIREBASE_URL}keys/${key}/hwid.json`, {
+        method:"PUT", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(currentDeviceId)
+      });
+      await fetch(`${FIREBASE_URL}keys/${key}/activatedAt.json`, {
+        method:"PUT", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(new Date().toISOString())
+      });
       A("Khóa HWID OK.","ok");
     } else A("HWID khớp.","ok");
-
     currentKey = key;
-    saveKeyHistory(key);
-    try { localStorage.setItem(LS_SESSION, JSON.stringify({ key, hwid: currentDeviceId, savedAt: Date.now() })); } catch(_) {}
+    try {
+      localStorage.setItem(LS_LAST_KEY, key);
+      let h = [];
+      try { h = JSON.parse(localStorage.getItem(LS_HISTORY)||"[]"); } catch(_) {}
+      h = [key, ...h.filter(x => x !== key)].slice(0,8);
+      localStorage.setItem(LS_HISTORY, JSON.stringify(h));
+      localStorage.setItem(LS_SESSION, JSON.stringify({ key, hwid: currentDeviceId, savedAt: Date.now() }));
+    } catch(_) {}
     $("#activeKey").textContent = key;
-
     A("Preload code.txt...");
     const ok = await preloadPayload();
-    if (ok) A(`Payload: ${payloadCache.length}B`, "ok");
-    else A("Chưa tự động lấy được code.txt.", "warn");
-
+    A(ok ? `Payload: ${payloadCache.length}B` : "Chưa lấy được code.txt", ok ? "ok" : "warn");
     setTimeout(() => {
       $("#page1").classList.remove("active");
       $("#page2").classList.add("active");
       if (!ok) $("#switchSub").textContent = "⚠ Chưa có payload";
     }, 400);
-  } catch(e) {
-    A("Lỗi: " + e.message, "err");
-  } finally {
-    btn.disabled = false; btn.textContent = "XÁC THỰC & KÍCH HOẠT";
-  }
-}
+  } catch(e) { A("Lỗi: " + e.message, "err"); }
+  finally { btn.disabled = false; btn.textContent = "XÁC THỰC & KÍCH HOẠT"; }
+});
 
-async function tryAutoLogin(){
-  let saved = null;
-  try { saved = JSON.parse(localStorage.getItem(LS_SESSION) || "null"); } catch(_) {}
-  if (!saved || saved.hwid !== currentDeviceId) return false;
-  try {
-    const node = await fbGet(`keys/${saved.key}`);
-    if (!node || node.active !== true) return false;
-    if (node.hwid && node.hwid !== currentDeviceId) return false;
-    if (node.expiryDate !== "PERMANENT" && new Date(node.expiryDate) < new Date()) return false;
-    currentKey = saved.key;
-    $("#activeKey").textContent = saved.key;
-    const ok = await preloadPayload();
-    $("#page1").classList.remove("active");
-    $("#page2").classList.add("active");
-    if (!ok) $("#switchSub").textContent = "⚠ Chưa có payload";
-    return true;
-  } catch(_) { return false; }
-}
-
-/* ============ SCHEME BUILDER ============ */
-function buildSchemeUrl(plat){
-  const kq = `k=${encodeURIComponent(currentKey)}&h=${encodeURIComponent(currentDeviceId)}`;
-  if (plat.os === "android") {
-    const t = plat.targets[0];
-    const fb = encodeURIComponent(`https://play.google.com/store/apps/details?id=${t}`);
-    return `intent://inject?${kq}#Intent;scheme=pilaf;package=${t};` +
-           `S.pilaf_key=${encodeURIComponent(currentKey)};` +
-           `S.pilaf_hwid=${encodeURIComponent(currentDeviceId)};` +
-           `S.pilaf_payload=${encodeURIComponent(payloadB64.slice(0, 6000))};` +
-           `browser_fallback_url=${fb};end`;
-  }
-  if (plat.os === "ios") {
-    return `shortcuts://run-shortcut?name=PILAF-Inject&input=text&text=${encodeURIComponent(payloadB64.slice(0, 8000))}`;
-  }
-  return `pilaf://inject?${kq}&p=${encodeURIComponent(payloadB64.slice(0, 6000))}`;
-}
-
-function fireIframe(url){
-  const f = document.createElement("iframe");
-  f.style.cssText = "position:absolute;width:1px;height:1px;left:-9999px;border:0;opacity:0";
-  f.src = url;
-  document.body.appendChild(f);
-  setTimeout(() => { try { f.remove(); } catch(_) {} }, 2500);
-}
-
-/* ============ DOWNLOAD ============ */
-function downloadFile(name, content, mime){
-  const blob = new Blob([content], { type: mime || "application/octet-stream" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { try { a.remove(); URL.revokeObjectURL(url); } catch(_) {} }, 1500);
-}
-
-/* ============ PS1 GENERATOR ============ */
-function generatePS1(b64, targets){
-  const t = targets.map(x => `'${x}'`).join(",");
-  return `if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Start-Process powershell "-ExecutionPolicy Bypass -NoProfile -File \\"$PSCommandPath\\"" -Verb RunAs
-    exit
-}
-$targets = @(${t})
-$payload = [Convert]::FromBase64String('${b64}')
-$proc = $null
-foreach ($tn in $targets) {
-    $base = $tn -replace '\\.exe$',''
-    $p = Get-Process -Name $base -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($p) { $proc = $p; Write-Host "[+] Found: $($p.ProcessName) PID=$($p.Id)"; break }
-}
-if (-not $proc) { Write-Host "[!] Target not running."; Read-Host "Enter"; exit 1 }
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public class W {
-  [DllImport("kernel32.dll")] public static extern IntPtr OpenProcess(uint a, bool b, int c);
-  [DllImport("kernel32.dll")] public static extern IntPtr VirtualAllocEx(IntPtr h, IntPtr a, uint s, uint t, uint p);
-  [DllImport("kernel32.dll")] public static extern bool WriteProcessMemory(IntPtr h, IntPtr a, byte[] b, uint s, out uint w);
-  [DllImport("kernel32.dll")] public static extern IntPtr CreateRemoteThread(IntPtr h, IntPtr a, uint s, IntPtr f, IntPtr p, uint c, IntPtr id);
-  [DllImport("kernel32.dll")] public static extern IntPtr GetProcAddress(IntPtr m, string n);
-  [DllImport("kernel32.dll")] public static extern IntPtr GetModuleHandle(string n);
-}
-"@
-$dll = Join-Path $env:TEMP "pilaf_payload.dll"
-[IO.File]::WriteAllBytes($dll, $payload)
-$h = [W]::OpenProcess(0x1F0FFF, $false, $proc.Id)
-$bytes = [Text.Encoding]::ASCII.GetBytes($dll + [char]0)
-$mem = [W]::VirtualAllocEx($h, [IntPtr]::Zero, [uint32]$bytes.Length, 0x3000, 0x04)
-$wr = 0
-[W]::WriteProcessMemory($h, $mem, $bytes, [uint32]$bytes.Length, [ref]$wr) | Out-Null
-$k32 = [W]::GetModuleHandle("kernel32.dll")
-$ll = [W]::GetProcAddress($k32, "LoadLibraryA")
-$th = [W]::CreateRemoteThread($h, [IntPtr]::Zero, 0, $ll, $mem, 0, [IntPtr]::Zero)
-Write-Host "[+] INJECTED into $($proc.ProcessName)"
-Start-Sleep 2
-`;
-}
-
-/* ============ VECTOR UI ============ */
-function mkVector(name){
-  const el = document.createElement("div");
-  el.className = "vec";
-  el.innerHTML = `<span class="n">${name}</span><span class="st">idle</span>`;
-  $("#vectors").appendChild(el);
-  return {
-    set(s, t) {
-      el.className = "vec " + s;
-      el.querySelector(".st").textContent = t || s;
-    }
-  };
-}
-
-async function tryBridge(plat, v){
-  for (const port of BRIDGE_PORTS) {
-    try {
-      const sr = await fetch(`http://127.0.0.1:${port}/status`, { signal: timeout(600) });
-      if (!sr.ok) continue;
-      const info = await sr.json().catch(() => ({}));
-      v.set("run", `:${port} ${info.agent || ""}`.trim());
-      const ir = await fetch(`http://127.0.0.1:${port}/inject`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          target: plat.targets[0],
-          code: payloadCache,
-          platform: plat.os,
-          key: currentKey,
-          hwid: currentDeviceId
-        }),
-        signal: timeout(6000)
-      });
-      if (ir.ok) {
-        const j = await ir.json().catch(() => ({}));
-        if (j.status === "ok") {
-          v.set("ok", j.method || "injected");
-          return { port, method: j.method, pid: j.pid };
-        }
-      }
-    } catch(_) {}
-  }
-  v.set("fail", "no agent");
-  return null;
-}
-
-/* ============ MAIN TOGGLE ============ */
-function handleToggle(){
-  const row = $("#switchRow");
-  const log = $("#injectLog");
-  const sub = $("#switchSub");
-  const on = row.classList.toggle("on");
-  $("#vectors").innerHTML = "";
-  log.innerHTML = "";
-
-  if (!on) {
-    sub.textContent = "Khởi động pipeline đa vector";
-    L(log, "Disabled.", "info");
-    return;
-  }
-
-  if (!payloadB64) {
-    L(log, "⚠ Chưa có payload! Kéo thả file code.txt vào ô phía trên.", "err");
-    $("#dropZone").style.display = "block";
-    
-    // Hiệu ứng rung lắc báo lỗi
-    const dz = $("#dropZone");
-    dz.classList.remove("shake");
-    void dz.offsetWidth; // trigger reflow
-    dz.classList.add("shake");
-
-    row.classList.remove("on");
-    sub.textContent = "⚠ Chưa có payload";
-    return;
-  }
-
-  const plat = getPlatform();
-  sub.textContent = "Firing " + plat.label + "...";
-  L(log, `Platform: ${plat.label}`, "ok");
-  L(log, `Payload: ${payloadCache.length}B`, "ok");
-
-  /* ---- SYNC VECTORS ---- */
-  
-  // 1. Clipboard
-  const vClip = mkVector("📋 Clipboard");
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(payloadCache)
-      .then(() => vClip.set("ok", "copied"))
-      .catch(e => vClip.set("fail", e.name || "err"));
-  } else vClip.set("na", "no api");
-
-  // 2. Native Scheme (intent:// | shortcuts://)
-  const vScheme = mkVector("🔗 " + plat.os.toUpperCase() + " Scheme");
-  try {
-    fireIframe(buildSchemeUrl(plat));
-    vScheme.set("ok", "fired");
-  } catch(e) { vScheme.set("fail", "err"); }
-
-  // 3. Custom Protocol (pilaf://)
-  const vProto = mkVector("🌐 pilaf:// Protocol");
-  try {
-    fireIframe("pilaf://inject?p=" + encodeURIComponent(payloadB64.slice(0, 6000)) +
-               "&k=" + encodeURIComponent(currentKey));
-    vProto.set("ok", "fired");
-  } catch(e) { vProto.set("fail", "err"); }
-
-  /* ---- ASYNC VECTORS ---- */
-  (async () => {
-    // 4. HTTP Bridge
-    const vBridge = mkVector("📡 HTTP Bridge");
-    vBridge.set("run", "probe");
-    const br = await tryBridge(plat, vBridge);
-    
-    if (!br) {
-      // 5. Auto-Retry
-      const vRetry = mkVector("🔄 Auto-Retry 30s");
-      vRetry.set("run", "0/10");
-      let ok = false;
-      for (let i = 1; i <= 10; i++) {
-        await sleep(3000);
-        vRetry.set("run", `${i}/10`);
-        const r = await tryBridge(plat, vRetry);
-        if (r) { vRetry.set("ok", `:${r.port}`); ok = true; break; }
-      }
-      if (!ok) vRetry.set("fail", "timeout");
-    }
-
-    // 6. PS1 Injector (PC Only)
-    if (plat.os === "pc") {
-      const vPS = mkVector("💾 PS1 Injector");
-      try {
-        const ps = generatePS1(payloadB64, plat.targets);
-        downloadFile("PILAF_INJECT.ps1", ps, "text/plain");
-        vPS.set("ok", "downloaded");
-        L(log, "Đã tải PILAF_INJECT.ps1 (Chuột phải → Run with PowerShell)", "warn");
-      } catch(e) { vPS.set("fail", "err"); }
-    }
-
-    const okCount = $("#vectors").querySelectorAll(".vec.ok").length;
-    if (br) sub.textContent = "✓ Injected via Bridge";
-    else sub.textContent = `Fired ${okCount} vectors`;
-    
-    L(log, `Done. Success: ${okCount} vector(s)`, okCount > 0 ? "ok" : "warn");
-  })().catch(e => {
-    L(log, "Error: " + e.message, "err");
-  });
-}
-
-/* ============ EVENTS ============ */
-$("#btnActivate").addEventListener("click", activateKey);
-$("#licenseInput").addEventListener("keydown", e => { if (e.key === "Enter") activateKey(); });
+$("#licenseInput").addEventListener("keydown", e => { if (e.key === "Enter") $("#btnActivate").click(); });
 $("#licenseInput").addEventListener("input", e => {
   e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "");
 });
@@ -664,18 +682,45 @@ $("#switchRow").addEventListener("click", handleToggle);
 
 /* ============ BOOT ============ */
 (async function boot(){
-  loadKeyHistory();
+  // Load key history
+  try {
+    const last = localStorage.getItem(LS_LAST_KEY);
+    if (last) $("#licenseInput").value = last;
+    const hist = JSON.parse(localStorage.getItem(LS_HISTORY) || "[]");
+    const dl = $("#keyHist"); dl.innerHTML = "";
+    hist.forEach(k => { const o = document.createElement("option"); o.value = k; dl.appendChild(o); });
+  } catch(_) {}
+
   setupDropzone();
-  
+
   const plat = getPlatform();
-  $("#devBadge").textContent = `DEVICE: ${plat.label} · ${plat.targets[0]}`;
-  
+  $("#devBadge").textContent = `DEVICE: ${plat.label}`;
+
   try { currentDeviceId = await getDeviceId(); showHwid(currentDeviceId); } catch(_) {}
-  
+
+  // Init Service Worker
+  await initSW().catch(() => {});
+
   const ok = await preloadPayload();
   if (!ok) $("#dropZone").style.display = "block";
 
-  try { await tryAutoLogin(); } catch(_) {}
+  // Auto-login
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_SESSION) || "null");
+    if (saved && saved.hwid === currentDeviceId) {
+      const r = await fetch(`${FIREBASE_URL}keys/${saved.key}.json`);
+      const node = await r.json();
+      if (node && node.active === true &&
+          (!node.hwid || node.hwid === currentDeviceId) &&
+          (node.expiryDate === "PERMANENT" || new Date(node.expiryDate) > new Date())) {
+        currentKey = saved.key;
+        $("#activeKey").textContent = saved.key;
+        $("#page1").classList.remove("active");
+        $("#page2").classList.add("active");
+        if (!ok) $("#switchSub").textContent = "⚠ Chưa có payload";
+      }
+    }
+  } catch(_) {}
 })();
 
 })();
