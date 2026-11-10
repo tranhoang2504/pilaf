@@ -197,6 +197,10 @@ input[type="text"]::placeholder { color: rgba(0, 240, 255, 0.2); font-size: 15px
 .modal-btn { padding: 14px 24px; background: var(--success); color: #000; border: none; border-radius: 10px; font-weight: 800; font-size: 14px; font-family: var(--font-ui); letter-spacing: 1px; cursor: pointer; width: 100%; transition: all 0.3s; }
 .modal-btn:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,255,136,0.4); }
 
+/* ================= V7 EXTRA ================= */
+.payload-stat { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); letter-spacing: 1px; text-align: center; padding: 8px 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(0,240,255,0.12); border-radius: 8px; word-break: break-all; }
+.payload-stat.ready { color: var(--success); border-color: rgba(0,255,136,0.3); text-shadow: 0 0 8px rgba(0,255,136,0.4); }
+
 @media (max-width: 480px) {
   .panel { border-radius: 16px; }
   .header, .content, .footer { padding-left: 20px; padding-right: 20px; }
@@ -380,6 +384,8 @@ MUYgRUYgQkYgQkQgMDggMDAgMDAgMDAgMDAgMDAgMDIgRUYgQkYgQkQgRUYgQkYgQkQgRUYgQkYgQkQg
       <div class="toggle-sw"></div>
     </div>
 
+    <div class="payload-stat" id="payloadStat">PAYLOAD: CHƯA NẠP</div>
+
     <div class="notice-box">
       <div class="notice-icon">⚠️</div>
       <div class="notice-content">
@@ -417,39 +423,72 @@ MUYgRUYgQkYgQkQgMDggMDAgMDAgMDAgMDAgMDAgMDIgRUYgQkYgQkQgRUYgQkYgQkQgRUYgQkYgQkQg
 (() => {
 "use strict";
 
-window.onerror = function(msg, url, line) { console.warn("Caught:", msg); return true; };
+window.onerror = function(msg) { console.warn("Caught:", msg); return true; };
 
-const FIREBASE_URL = "https://meowmeow-e6c41-default-rtdb.asia-southeast1.firebasedatabase.app/";
-const LS_KEY = "pilaf_saved_key";
+/* ============================================================
+   CONFIG V7 — chỉnh ở đây
+   ============================================================ */
+const CONFIG = {
+  FIREBASE_URL: "https://meowmeow-e6c41-default-rtdb.asia-southeast1.firebasedatabase.app/",
+  LS_KEY: "pilaf_saved_key",
+  INJECT_KEY: "pilaf_inject_last",
+  PAYLOAD_ID: "pilaf-payload",
+  MAX_PAYLOAD: 4 * 1024 * 1024,     // 4MB
+  CHUNK: 16000,                     // WebSocket / WebRTC chunk
+  FB_CHUNK: 200000,                 // 1 write Firebase tối đa
+  SCAN_TIMEOUT: 400,
+  WS_PORTS: [5037, 5555, 5554, 27015, 27777, 8080, 8888, 3000, 8000, 9000, 21503, 62001, 7555, 16384, 27042, 5000, 7777],
+  PORTS: [5037, 5554, 5555, 5556, 5558, 62001, 62025, 7555, 16384, 16416, 21503, 27015, 27042, 27777, 27778, 8080, 8081, 8888, 3000, 8000, 9000, 9090, 8001, 5000, 7777, 12345],
+  HOSTS: ["127.0.0.1", "localhost", "10.0.2.2", "10.0.3.2"],
+  ENDPOINTS: ["/inject", "/payload", "/proxy", "/forward", "/relay", "/beacon", "/code", "/api/inject", "/config", "/token", "/data", "/set", "/update", "/run", "/execute", "/load", "/push", "/sync", "/lua", "/dll", "/script", "/magic", "/core", "/aim"],
+  SW_PATHS: ["/pilaf-proxy", "/proxy", "/forward", "/relay", "/pilaf-payload", "/code.txt", "/payload.bin", "/inject", "/api/inject", "/data.json", "/config", "/token", "/script.lua", "/script.dll", "/script.so", "/payload", "/core", "/aim", "/magic", "/sync", "/run", "/status"],
+  FB_PATHS: ["pilaf_cloud", "pilaf_payloads", "pilaf_inject", "pilaf_core"]
+};
+
 const $ = s => document.querySelector(s);
-const iframePool = document.querySelectorAll('#iframePool iframe');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const iframePool = document.querySelectorAll("#iframePool iframe");
 
+/* ============================================================
+   STATE
+   ============================================================ */
 let currentDeviceId = "";
 let currentKey = "";
-let payloadRaw = "";    
 let activePlatform = null;
-let p2pPoll = null;
-let workers = [];
-let schemeInterval = null;
+let keyCheckInterval = null;
 let timerInterval = null;
-
 let audioCtx = null;
 let audioOsc = null;
-let keyCheckInterval = null;
 let currentStatus = "IDLE";
+let schemeInterval = null;
 
-// HIỆN MODAL CHÀO MỪNG KHI VỪA VÀO WEB
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    $("#introModal").classList.add("active");
-  }, 800);
+const engine = {
+  running: false,
+  payload: null,
+  ws: [],
+  workers: [],
+  pcs: [],
+  timers: [],
+  beat: null,
+  stormTimer: null
+};
+
+// PROXY MODE — nếu URL là proxy, trả payload trực tiếp rồi dừng
+if (maybeServeProxy()) return;
+
+/* ============================================================
+   HIỆN MODAL CHÀO MỪNG
+   ============================================================ */
+window.addEventListener("load", () => {
+  setTimeout(() => { const m = $("#introModal"); if (m) m.classList.add("active"); }, 800);
 });
-
 $("#btnIntroOk").addEventListener("click", () => {
-  $("#introModal").classList.remove("active");
+  const m = $("#introModal"); if (m) m.classList.remove("active");
 });
 
-/* ============ ADVANCED HARDWARE TELEMETRY ============ */
+/* ============================================================
+   HARDWARE TELEMETRY
+   ============================================================ */
 function getHardwareInfo() {
   const ua = navigator.userAgent;
   let os = "Unknown", osVer = "", device = "Unknown Device", chip = "Unknown";
@@ -479,7 +518,9 @@ function getHardwareInfo() {
   return { os, osVer, device, chip };
 }
 
-/* ============ COUNTDOWN TIMER ============ */
+/* ============================================================
+   COUNTDOWN
+   ============================================================ */
 function startCountdown(expiryDate) {
   if (timerInterval) clearInterval(timerInterval);
   const box = $("#timerBox");
@@ -535,7 +576,9 @@ function stopCountdown() {
   timerInterval = null;
 }
 
-/* ============ FINGERPRINT ============ */
+/* ============================================================
+   FINGERPRINT — GIỮ NGUYÊN THUẬT TOÁN GỐC (không đổi HWID)
+   ============================================================ */
 async function getDeviceId() {
   const raw = [
     screen.width, screen.height, screen.colorDepth,
@@ -564,7 +607,9 @@ async function getDeviceId() {
   }
 }
 
-/* ============ PLATFORM ============ */
+/* ============================================================
+   PLATFORM
+   ============================================================ */
 function detectPlatform(){
   const ua = navigator.userAgent || "", pf = navigator.platform || "";
   if (/Android/i.test(ua)) return { os:"android", label:"ANDROID" };
@@ -573,7 +618,9 @@ function detectPlatform(){
 }
 function getPlatform(){ return activePlatform || (activePlatform = detectPlatform()); }
 
-/* ============ LOG ============ */
+/* ============================================================
+   LOG
+   ============================================================ */
 function logTerm(msg, type="info") {
   const t = $("#terminal");
   if (!t) return;
@@ -598,17 +645,34 @@ function authLog(msg, type="info") {
   t.scrollTop = t.scrollHeight;
 }
 
-/* ============ FIREBASE ============ */
+/* ============================================================
+   FIREBASE
+   ============================================================ */
 async function fbGet(p){
   const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 8000);
-  try { const r = await fetch(`${FIREBASE_URL}${p}.json`, { signal: ctrl.signal }); if (!r.ok) throw new Error("FB " + r.status); return await r.json(); } finally { clearTimeout(timer); }
+  try { const r = await fetch(`${CONFIG.FIREBASE_URL}${p}.json`, { signal: ctrl.signal }); if (!r.ok) throw new Error("FB " + r.status); return await r.json(); } finally { clearTimeout(timer); }
 }
 async function fbPut(p, o){
   const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 8000);
-  try { const r = await fetch(`${FIREBASE_URL}${p}.json`, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(o), signal: ctrl.signal }); if (!r.ok) throw new Error("FB " + r.status); return await r.json(); } finally { clearTimeout(timer); }
+  try { const r = await fetch(`${CONFIG.FIREBASE_URL}${p}.json`, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(o), signal: ctrl.signal }); if (!r.ok) throw new Error("FB " + r.status); return await r.json(); } finally { clearTimeout(timer); }
+}
+async function fbPutRetry(path, obj, tries = 3) {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 8000);
+      const r = await fetch(`${CONFIG.FIREBASE_URL}${path}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(obj), signal: ctrl.signal });
+      clearTimeout(t);
+      if (r.ok) return true;
+    } catch(_) {}
+    await sleep(300 * (i + 1));
+  }
+  return false;
 }
 
-/* ============ AUTH ============ */
+/* ============================================================
+   AUTH — GIỮ NGUYÊN LOGIC GỐC
+   ============================================================ */
 async function activateKey(isAuto = false){
   const btn = $("#btnActivate");
   const key = $("#licenseInput").value.trim().toUpperCase();
@@ -632,25 +696,25 @@ async function activateKey(isAuto = false){
     if (!node) { 
       if(!isAuto) authLog("Key không tồn tại.", "error"); 
       btn.textContent = "Key Không Tồn Tại"; btn.disabled = false; 
-      localStorage.removeItem(LS_KEY); return; 
+      localStorage.removeItem(CONFIG.LS_KEY); return; 
     }
     if (node.active !== true) { 
       if(!isAuto) authLog("Key đã bị vô hiệu hóa.", "error"); 
       btn.textContent = "Key Bị Khóa"; btn.disabled = false; 
-      localStorage.removeItem(LS_KEY); return; 
+      localStorage.removeItem(CONFIG.LS_KEY); return; 
     }
     if (node.expiryDate !== "PERMANENT") {
       const exp = new Date(node.expiryDate);
       if (isNaN(exp) || exp < new Date()) { 
         if(!isAuto) authLog("Key đã hết hạn.", "error"); 
         btn.textContent = "Key Hết Hạn"; btn.disabled = false; 
-        localStorage.removeItem(LS_KEY); return; 
+        localStorage.removeItem(CONFIG.LS_KEY); return; 
       }
     }
     if (node.hwid && node.hwid !== currentDeviceId) { 
       if(!isAuto) authLog("Thiết bị không khớp HWID.", "error"); 
       btn.textContent = "Sai Thiết Bị"; btn.disabled = false; 
-      localStorage.removeItem(LS_KEY); return; 
+      localStorage.removeItem(CONFIG.LS_KEY); return; 
     }
     
     if (!node.hwid) {
@@ -659,7 +723,7 @@ async function activateKey(isAuto = false){
     }
 
     currentKey = key;
-    localStorage.setItem(LS_KEY, key);
+    localStorage.setItem(CONFIG.LS_KEY, key);
     
     if(!isAuto) authLog("Xác thực thành công.", "success");
     else authLog("Tự động đăng nhập thành công.", "success");
@@ -669,6 +733,7 @@ async function activateKey(isAuto = false){
     setTimeout(() => {
       $("#page1").classList.remove("active");
       $("#page2").classList.add("active");
+      maybeAutoInject();
     }, isAuto ? 100 : 600);
 
   } catch(e) {
@@ -680,7 +745,9 @@ async function activateKey(isAuto = false){
   }
 }
 
-/* ============ ANTI-SLEEP ============ */
+/* ============================================================
+   ANTI-SLEEP
+   ============================================================ */
 function startAudioKeepAlive() {
   try {
     if (audioCtx) return;
@@ -695,6 +762,9 @@ function stopAudioKeepAlive() {
   try { if (audioOsc) { audioOsc.stop(); audioOsc.disconnect(); audioOsc = null; } if (audioCtx) { audioCtx.close(); audioCtx = null; } } catch(e) {}
 }
 
+/* ============================================================
+   KEY AUTO CHECKER
+   ============================================================ */
 function startKeyAutoChecker() {
   if (keyCheckInterval) clearInterval(keyCheckInterval);
   keyCheckInterval = setInterval(async () => {
@@ -709,263 +779,854 @@ function startKeyAutoChecker() {
         const btn = $("#btnActivate");
         btn.textContent = "License Hết Hạn";
         btn.disabled = true;
-        localStorage.removeItem(LS_KEY);
+        localStorage.removeItem(CONFIG.LS_KEY);
       }
     } catch(e) {}
   }, 10000);
 }
 
 /* ============================================================
-   HYBRID ENGINE V5 (MAX POWER + ZERO LAG)
+   AUTO INJECT
    ============================================================ */
-
-async function executeGhostVectors(raw, b64, hex) {
-  try {
-    if (navigator.clipboard && navigator.clipboard.write) {
-      await navigator.clipboard.write([new ClipboardItem({
-        "text/plain": new Blob([raw], {type: "text/plain"}),
-        "application/json": new Blob([JSON.stringify({raw: raw.slice(0, 50000), b64: b64.slice(0, 50000), hex: hex.slice(0, 50000)})], {type: "application/json"})
-      })]);
+function maybeAutoInject() {
+  let on = false;
+  try { on = localStorage.getItem(CONFIG.INJECT_KEY) === "1"; } catch(_) {}
+  if (!on) return;
+  setTimeout(() => {
+    if (currentStatus !== "ACTIVE" && !$("#switchRow").classList.contains("active")) {
+      $("#switchRow").click();
+      logTerm("Tự động kích hoạt Inject.", "success");
     }
-    localStorage.setItem('pilaf_payload', b64.slice(0, 100000));
-    let m = document.getElementById('pilaf-meta');
-    if (!m) { m = document.createElement('meta'); m.id = 'pilaf-meta'; document.head.appendChild(m); }
-    m.setAttribute('content', b64.slice(0, 1000));
+  }, 1200);
+}
+
+/* ============================================================
+   PROXY MODE — tự phục vụ payload qua URL (không cần SW)
+   Dùng: PILAF_V7_MAX.html?pilaf=proxy&format=raw
+        PILAF_V7_MAX.html?proxy=1&format=b64
+        PILAF_V7_MAX.html?pilaf=proxy&format=json
+        PILAF_V7_MAX.html?pilaf=proxy&format=raw&chunk=0&chunksize=16000
+   ============================================================ */
+function maybeServeProxy() {
+  try {
+    const u = new URL(location.href);
+    const isProxy = u.searchParams.get("pilaf") === "proxy"
+      || u.searchParams.get("proxy") === "1"
+      || (u.searchParams.get("format") !== null && /pilaf|proxy|payload|inject/i.test(u.pathname));
+    if (!isProxy) return false;
+
+    const format = (u.searchParams.get("format") || "raw").toLowerCase();
+    const raw = resolvePayload();
+    if (!raw) return false;
+
+    let body = raw;
+    if (format === "b64") body = b64FromUtf8(raw);
+    else if (format === "hex") body = hexFromUtf8(raw);
+    else if (format === "json") body = JSON.stringify({ payload: raw, b64: b64FromUtf8(raw), size: raw.length, key: currentKey, hwid: currentDeviceId, ts: Date.now() });
+    else if (format === "meta" || format === "status") body = JSON.stringify({ ok: true, size: raw.length, key: currentKey, hwid: currentDeviceId, ts: Date.now() });
+
+    const chunk = u.searchParams.get("chunk");
+    if (chunk !== null) {
+      const size = parseInt(u.searchParams.get("chunksize") || "16000", 10);
+      const i = parseInt(chunk, 10);
+      body = raw.slice(i * size, i * size + size);
+    }
+
+    const replace = () => {
+      try {
+        document.open();
+        document.write(body);
+        document.close();
+      } catch(_) {}
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", replace, { once: true });
+    } else {
+      replace();
+    }
+    return true;
+  } catch(_) { return false; }
+}
+
+/* ============================================================
+   PAYLOAD RESOLVER — script tag (gốc) + fallback URL hash
+   ============================================================ */
+function resolvePayload() {
+  const el = document.getElementById(CONFIG.PAYLOAD_ID);
+  let raw = el ? (el.textContent || "").trim() : "";
+  if (!raw || raw.includes("Xóa các dòng này")) {
+    try {
+      const h = location.hash || "";
+      const m = h.match(/#(?:payload|b64|data)=([^&]+)/i);
+      if (m) {
+        raw = decodeURIComponent(m[1]);
+        if (!h.toLowerCase().includes("payload=")) {
+          try { raw = decodeURIComponent(escape(atob(raw))); } catch(_) {}
+        }
+        logTerm("Nạp Payload từ URL.", "info");
+      }
+    } catch(_) {}
+  }
+  return raw.trim();
+}
+
+/* ============================================================
+   ENCODING HELPERS
+   ============================================================ */
+function b64FromUtf8(str) {
+  try { return btoa(unescape(encodeURIComponent(str))); }
+  catch(_) {
+    const bytes = new TextEncoder().encode(str);
+    let s = "";
+    for (let i = 0; i < bytes.length; i += 0x8000)
+      s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(s);
+  }
+}
+function hexFromUtf8(str) {
+  const bytes = new TextEncoder().encode(str);
+  let h = "";
+  for (let i = 0; i < bytes.length; i++) h += bytes[i].toString(16).padStart(2, "0");
+  return h;
+}
+function b64FromBytes(u8) {
+  let s = "";
+  for (let i = 0; i < u8.length; i += 0x8000)
+    s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+async function gzipUtf8(str) {
+  const cs = new CompressionStream("gzip");
+  const stream = new Blob([new TextEncoder().encode(str)]).stream().pipeThrough(cs);
+  const buf = await new Response(stream).arrayBuffer();
+  return new Uint8Array(buf);
+}
+function chunkStr(str, size) {
+  const out = [];
+  for (let i = 0; i < str.length; i += size) out.push(str.slice(i, i + size));
+  return out;
+}
+
+/* ============================================================
+   PAYLOAD STAGING — không còn giới hạn 2000 ký tự
+   ============================================================ */
+async function stagePayload(raw) {
+  const size = new TextEncoder().encode(raw).length;
+  if (size > CONFIG.MAX_PAYLOAD) throw new Error("Payload quá lớn (tối đa 4MB)");
+  const p = {
+    raw,
+    size,
+    b64: b64FromUtf8(raw),
+    hex: size <= 1000000 ? hexFromUtf8(raw) : "",
+    chunks: chunkStr(raw, CONFIG.CHUNK),
+    gzip: null
+  };
+  try { p.gzip = b64FromBytes(await gzipUtf8(raw)); } catch(_) {}
+  return p;
+}
+
+/* ============================================================
+   STAGING: STORAGE / CLIPBOARD / META / DOWNLOAD / BROADCAST
+   ============================================================ */
+function stageLocalStorage(p) {
+  const write = (k, v) => { try { localStorage.setItem(k, v); return true; } catch(_) { return false; } };
+
+  // giữ đúng key gốc để receiver cũ không bị hỏng
+  write("pilaf_payload", p.b64.slice(0, 100000));
+  write("pilaf_payload_meta", JSON.stringify({ size: p.size, b64len: p.b64.length, ts: Date.now(), key: currentKey, hwid: currentDeviceId }));
+
+  // bản full chunk hóa — thêm key pilaf_payload_N
+  const keys = [];
+  const STEP = 400000;
+  for (let i = 0; i < p.b64.length; i += STEP) {
+    const k = "pilaf_payload_" + (i / STEP);
+    if (!write(k, p.b64.slice(i, i + STEP))) break;
+    keys.push(k);
+  }
+  write("pilaf_payload_keys", JSON.stringify(keys));
+
+  try { sessionStorage.setItem("pilaf_payload", p.b64.slice(0, 100000)); } catch(_) {}
+  try { document.cookie = "pilaf_payload=" + encodeURIComponent(p.b64.slice(0, 20000)) + "; path=/; max-age=31536000; SameSite=Lax"; } catch(_) {}
+  try { if ((window.name || "").length < 100000) window.name = "pilaf:" + p.b64.slice(0, 20000) + ";" + (window.name || ""); } catch(_) {}
+
+  try {
+    let m = document.getElementById("pilaf-meta");
+    if (!m) { m = document.createElement("meta"); m.id = "pilaf-meta"; document.head.appendChild(m); }
+    m.setAttribute("content", p.b64.slice(0, 1000));
+
+    let m2 = document.getElementById("pilaf-meta-full");
+    if (!m2) { m2 = document.createElement("meta"); m2.id = "pilaf-meta-full"; document.head.appendChild(m2); }
+    m2.setAttribute("data-pilaf", p.b64.slice(0, 20000));
+
+    if (p.gzip) {
+      let m3 = document.getElementById("pilaf-meta-gzip");
+      if (!m3) { m3 = document.createElement("meta"); m3.id = "pilaf-meta-gzip"; document.head.appendChild(m3); }
+      m3.setAttribute("data-pilaf-gzip", p.gzip.slice(0, 20000));
+    }
   } catch(_) {}
 }
 
-async function executeServiceWorkerProxy(b64) {
-  if (!('serviceWorker' in navigator)) return;
+function stageIndexedDB(p) {
+  try {
+    const req = indexedDB.open("pilaf_store_v7", 1);
+    req.onupgradeneeded = () => { try { req.result.createObjectStore("payloads"); } catch(_) {} };
+    req.onsuccess = () => {
+      try {
+        const db = req.result;
+        const tx = db.transaction("payloads", "readwrite");
+        const store = tx.objectStore("payloads");
+        store.put({ b64: p.b64, raw: p.raw, size: p.size, ts: Date.now(), key: currentKey, hwid: currentDeviceId }, "current");
+        store.put(p.b64, "b64");
+        store.put(p.raw, "raw");
+      } catch(_) {}
+    };
+    req.onerror = () => {};
+  } catch(_) {}
+}
+
+function stageBroadcast(p) {
+  const msg = { type: "payload", source: "pilaf", b64: p.b64.slice(0, 100000), size: p.size, key: currentKey, hwid: currentDeviceId, ts: Date.now() };
+  ["pilaf-core", "pilaf-inject", "pilaf-payload", "PILAF"].forEach(name => {
+    try {
+      const bc = new BroadcastChannel(name);
+      bc.postMessage(msg);
+      setTimeout(() => { try { bc.close(); } catch(_) {} }, 500);
+    } catch(_) {}
+  });
+  try { window.postMessage(msg, "*"); } catch(_) {}
+}
+
+async function stageClipboard(p) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.write && typeof ClipboardItem !== "undefined") {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/plain": new Blob([p.raw], { type: "text/plain" }),
+          "application/json": new Blob([JSON.stringify({ raw: p.raw.slice(0, 50000), b64: p.b64.slice(0, 50000), hex: p.hex.slice(0, 50000), size: p.size, key: currentKey, hwid: currentDeviceId })], { type: "application/json" })
+        })
+      ]);
+    }
+  } catch(_) {}
+}
+
+async function stageGhostVectors(p) {
+  await stageClipboard(p);
+  stageLocalStorage(p);
+}
+
+/* ============================================================
+   STAGING: CACHE API
+   ============================================================ */
+async function stageCache(p) {
+  if (!window.caches) return;
+  try {
+    const cache = await caches.open("pilaf-mega-v7");
+    const put = async (path, body, mime) => {
+      try { await cache.put(path, new Response(body, { headers: { "Content-Type": mime || "text/plain", "Access-Control-Allow-Origin": "*" } })); } catch(_) {}
+    };
+    await put("/pilaf-payload", p.b64.slice(0, 500000));
+    await put("/pilaf-payload-raw", p.raw.slice(0, 500000));
+    await put("/payload.bin", p.b64.slice(0, 500000), "application/octet-stream");
+    await put("/data.json", JSON.stringify({ payload: p.raw.slice(0, 200000), b64: p.b64.slice(0, 200000), size: p.size, key: currentKey, hwid: currentDeviceId }), "application/json");
+    await put("/config", JSON.stringify({ key: currentKey, hwid: currentDeviceId, ts: Date.now(), size: p.size }), "application/json");
+    if (p.gzip) await put("/payload.gz", p.gzip, "application/gzip");
+  } catch(_) {}
+}
+
+/* ============================================================
+   STAGING: SERVICE WORKER PROXY
+   ============================================================ */
+async function stageServiceWorker(p) {
+  if (!("serviceWorker" in navigator)) return;
   try {
     const swCode = `
       let PAYLOAD = "";
+      let PAYLOAD_RAW = "";
+      let PAYLOAD_GZIP = "";
+      let PAYLOAD_HEX = "";
+      let META = {};
+      const VERSION = "V7";
+      const PATHS = ${JSON.stringify(CONFIG.SW_PATHS)};
+
       self.addEventListener('install', e => self.skipWaiting());
-      self.addEventListener('activate', e => e.waitUntil(clients.claim()));
-      self.addEventListener('message', e => { if (e.data.type === 'SET_PAYLOAD') PAYLOAD = e.data.payload; });
-      self.addEventListener('fetch', e => {
-        const url = new URL(e.request.url);
-        const paths = ['/pilaf-proxy', '/pilaf-payload', '/code.txt', '/payload.bin', '/inject', '/api/inject', '/data.json', '/config', '/token', '/script.lua', '/script.dll', '/script.so'];
-        if (paths.some(p => url.pathname.includes(p))) {
-          let mime = 'text/plain';
-          if (url.pathname.includes('.json')) mime = 'application/json';
-          if (url.pathname.includes('.js')) mime = 'application/javascript';
-          if (url.pathname.includes('.bin') || url.pathname.includes('.dll') || url.pathname.includes('.so')) mime = 'application/octet-stream';
-          e.respondWith(new Response(PAYLOAD || "empty", {
-            headers: { 'Content-Type': mime, 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' }
-          }));
+      self.addEventListener('activate', e => {
+        e.waitUntil(clients.claim());
+        e.waitUntil(restoreFromCache());
+      });
+
+      async function restoreFromCache() {
+        try {
+          const cache = await caches.open('pilaf-mega-v7');
+          const res = await cache.match('/pilaf-payload');
+          if (res) {
+            const txt = await res.text();
+            if (txt && txt.length > PAYLOAD.length) PAYLOAD = txt;
+          }
+          const cfg = await cache.match('/config');
+          if (cfg) { try { META = await cfg.json(); } catch(_) {} }
+        } catch(_) {}
+      }
+
+      async function persistToCache() {
+        try {
+          const cache = await caches.open('pilaf-mega-v7');
+          await cache.put('/pilaf-payload', new Response(PAYLOAD, { headers: { 'Content-Type': 'text/plain' } }));
+          await cache.put('/config', new Response(JSON.stringify(META), { headers: { 'Content-Type': 'application/json' } }));
+        } catch(_) {}
+      }
+
+      self.addEventListener('message', e => {
+        if (e.data && e.data.type === 'SET_PAYLOAD') {
+          PAYLOAD = e.data.payload || "";
+          PAYLOAD_RAW = e.data.raw || "";
+          PAYLOAD_GZIP = e.data.gzip || "";
+          PAYLOAD_HEX = e.data.hex || "";
+          META = { size: e.data.size || PAYLOAD.length, key: e.data.key || "", hwid: e.data.hwid || "", ts: Date.now() };
+          e.waitUntil(persistToCache());
+        }
+        if (e.data && e.data.type === 'GET_PAYLOAD') {
+          if (e.source) e.source.postMessage({ type: 'PAYLOAD', payload: PAYLOAD, raw: PAYLOAD_RAW, gzip: PAYLOAD_GZIP, hex: PAYLOAD_HEX, meta: META });
         }
       });
-    `;
-    const blob = new Blob([swCode], { type: 'application/javascript' });
-    const url = URL.createObjectURL(blob);
-    const reg = await navigator.serviceWorker.register(url, { scope: './' });
-    if (reg.active) { reg.active.postMessage({ type: 'SET_PAYLOAD', payload: b64 }); }
-    else {
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'activated') newWorker.postMessage({ type: 'SET_PAYLOAD', payload: b64 });
-        });
-      });
-    }
-  } catch(_) {}
-}
 
-async function executeCacheAPI(b64) {
-  if (!window.caches) return;
-  try {
-    const cache = await caches.open('pilaf-mega-v5');
-    const payloadResponse = new Response(b64, { headers: { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' } });
-    await cache.put('/pilaf-payload', payloadResponse);
-  } catch(_) {}
-}
+      function buildBody(url) {
+        const format = (url.searchParams.get('format') || '').toLowerCase();
+        if (format === 'raw') return PAYLOAD_RAW || PAYLOAD;
+        if (format === 'b64') return PAYLOAD;
+        if (format === 'hex') return PAYLOAD_HEX;
+        if (format === 'gzip') return PAYLOAD_GZIP;
+        if (format === 'json') return JSON.stringify({ payload: PAYLOAD_RAW || PAYLOAD, b64: PAYLOAD, hex: PAYLOAD_HEX, gzip: PAYLOAD_GZIP, size: META.size || 0, key: META.key || "", hwid: META.hwid || "", ts: META.ts || 0 });
+        if (format === 'meta' || format === 'status') return JSON.stringify(Object.assign({ ok: true, version: VERSION }, META));
+        return PAYLOAD || "empty";
+      }
 
-// WebSocket Relay giữ kết nối 5s, gửi liên tục
-function executeWebSocketRelay(raw, plat) {
-  const targets = [{ host: '127.0.0.1', port: 5037 }, { host: '127.0.0.1', port: 27015 }, { host: '127.0.0.1', port: 27777 }];
-  const target = plat.os === 'pc' ? 'HD-player.exe' : 'com.dts.freefireth';
-  
-  targets.forEach(t => {
-    try {
-      const ws = new WebSocket(`ws://${t.host}:${t.port}`);
-      ws.onopen = () => {
+      self.addEventListener('fetch', e => {
         try {
-          ws.send(JSON.stringify({ type: 'start', target }));
-          const CHUNK = 15000;
-          let i = 0;
-          const timer = setInterval(() => {
-            if (i >= raw.length) {
-              ws.send(JSON.stringify({ type: 'end' }));
-              clearInterval(timer);
-              setTimeout(() => { try { ws.close(); } catch(_) {} }, 1000);
+          const req = e.request;
+          const url = new URL(req.url);
+          if (url.origin !== self.location.origin) return;
+          const pathname = url.pathname;
+          const isStatus = pathname.endsWith('/status') || url.searchParams.get('format') === 'status';
+          if (!isStatus && !PATHS.some(p => pathname.includes(p))) return;
+
+          // CORS preflight
+          if (req.method === 'OPTIONS') {
+            e.respondWith(new Response(null, { status: 204, headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+              'Access-Control-Allow-Headers': '*',
+              'Access-Control-Max-Age': '86400'
+            }}));
+            return;
+          }
+
+          const format = (url.searchParams.get('format') || '').toLowerCase();
+          const body = buildBody(url);
+          const mime = (format === 'json' || format === 'meta' || format === 'status') ? 'application/json'
+                     : format === 'gzip' ? 'application/gzip'
+                     : /\\.json$/.test(pathname) ? 'application/json'
+                     : /\\.(bin|dll|so)$/.test(pathname) ? 'application/octet-stream'
+                     : 'text/plain';
+
+          const headers = {
+            'Content-Type': mime,
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'no-cache',
+            'X-PILAF-Version': VERSION,
+            'X-PILAF-Size': String(META.size || 0),
+            'X-PILAF-Key': META.key || '',
+            'X-PILAF-Hwid': META.hwid || ''
+          };
+
+          // phân đoạn: ?chunk=i&chunksize=n
+          const chunkIdx = url.searchParams.get('chunk');
+          if (chunkIdx !== null) {
+            const size = parseInt(url.searchParams.get('chunksize') || '16000', 10);
+            const i = parseInt(chunkIdx, 10);
+            const src = PAYLOAD_RAW || PAYLOAD;
+            const start = i * size;
+            const slice = src.slice(start, start + size);
+            headers['X-PILAF-Chunk'] = String(i);
+            headers['X-PILAF-Total'] = String(Math.ceil((src.length || 1) / size));
+            e.respondWith(new Response(slice, { headers }));
+            return;
+          }
+
+          // Range request
+          const range = req.headers.get('range');
+          if (range && PAYLOAD_RAW) {
+            const m = range.match(/bytes=(\\d*)-(\\d*)/);
+            if (m) {
+              const total = PAYLOAD_RAW.length;
+              let start = m[1] ? parseInt(m[1], 10) : 0;
+              let end = m[2] ? parseInt(m[2], 10) : total - 1;
+              if (start > end || start >= total) {
+                e.respondWith(new Response(null, { status: 416, headers: { 'Content-Range': 'bytes */' + total } }));
+                return;
+              }
+              end = Math.min(end, total - 1);
+              const slice = PAYLOAD_RAW.slice(start, end + 1);
+              e.respondWith(new Response(slice, { status: 206, headers: Object.assign({}, headers, {
+                'Content-Range': 'bytes ' + start + '-' + end + '/' + total,
+                'Content-Length': String(slice.length)
+              })}));
               return;
             }
-            ws.send(raw.substring(i, i + CHUNK));
-            i += CHUNK;
-          }, 50);
+          }
+
+          if (req.method === 'POST') headers['X-PILAF-Ack'] = '1';
+          e.respondWith(new Response(body, { headers }));
         } catch(_) {}
-      };
-      ws.onerror = () => { try { ws.close(); } catch(_) {} };
-    } catch(_) {}
+      });
+    `;
+    let reg = null;
+    try {
+      reg = await navigator.serviceWorker.register("./pilaf-sw.js", { scope: "./" });
+      logTerm("Proxy SW (file) đã đăng ký.", "success");
+    } catch(_) {
+      try {
+        const blob = new Blob([swCode], { type: "application/javascript" });
+        const blobUrl = URL.createObjectURL(blob);
+        reg = await navigator.serviceWorker.register(blobUrl, { scope: "./" });
+        logTerm("Proxy SW (blob) đã đăng ký.", "success");
+      } catch(_) {
+        logTerm("Proxy SW không khả dụng (cần pilaf-sw.js).", "error");
+        return;
+      }
+    }
+    const send = () => {
+      try {
+        const sw = reg.active || reg.installing || reg.waiting;
+        if (sw) sw.postMessage({
+          type: "SET_PAYLOAD",
+          payload: p.b64,
+          raw: p.raw,
+          gzip: p.gzip || "",
+          hex: p.size <= 300000 ? p.hex : "",
+          size: p.size,
+          key: currentKey,
+          hwid: currentDeviceId
+        });
+      } catch(_) {}
+    };
+    if (reg.active) send();
+    else {
+      reg.addEventListener("updatefound", () => {
+        const w = reg.installing;
+        if (w) w.addEventListener("statechange", () => { if (w.state === "activated") send(); });
+      });
+    }
+    setTimeout(send, 2000);
+    setTimeout(send, 4000);
+    engine.timers.push(setInterval(() => { if (engine.running) send(); }, 30000));
+    logTerm("Proxy SW đã sẵn sàng.", "success");
+  } catch(_) {}
+}
+
+/* ============================================================
+   CHANNEL: WEBSOCKET RELAY (multi-port, full payload, ack)
+   ============================================================ */
+function startWebSocketRelay(p, plat) {
+  const target = plat.os === "pc" ? "HD-player.exe" : "com.dts.freefireth";
+  const hosts = ["127.0.0.1", "localhost"];
+  let idx = 0;
+  CONFIG.WS_PORTS.forEach(port => {
+    hosts.forEach(host => {
+      const delay = (idx++) * 25;
+      const t = setTimeout(() => {
+        if (!engine.running) return;
+        try {
+          const ws = new WebSocket(`ws://${host}:${port}/`);
+          const st = { ws, closed: false, timer: null, acked: false };
+          engine.ws.push(st);
+          ws.onopen = () => {
+            try {
+              ws.send(JSON.stringify({ type: "start", target, size: p.size, chunks: p.chunks.length, key: currentKey, hwid: currentDeviceId }));
+              let i = 0;
+              st.timer = setInterval(() => {
+                if (st.closed) return;
+                if (i >= p.chunks.length) {
+                  try { ws.send(JSON.stringify({ type: "end", key: currentKey, hwid: currentDeviceId })); } catch(_) {}
+                  clearInterval(st.timer);
+                  return;
+                }
+                try { ws.send(p.chunks[i]); } catch(_) {}
+                i++;
+              }, 40);
+            } catch(_) {}
+          };
+          ws.onmessage = (e) => {
+            try {
+              const d = JSON.parse(e.data);
+              if (d && (d.type === "ack" || d.ok)) {
+                st.acked = true;
+                logTerm(`WS ${host}:${port} đã ACK.`, "success");
+              }
+            } catch(_) {}
+          };
+          ws.onclose = () => { st.closed = true; try { clearInterval(st.timer); } catch(_) {} };
+          ws.onerror = () => { try { ws.close(); } catch(_) {} };
+        } catch(_) {}
+      }, delay);
+      engine.timers.push(t);
+    });
   });
 }
 
-// WebRTC Mesh (9 Channels)
-async function executeMultiWebRTC(raw, plat) {
-  if (!window.RTCPeerConnection) return;
-  const target = plat.os === 'pc' ? 'HD-player.exe' : 'com.dts.freefireth';
-  for (let i = 0; i < 3; i++) {
-    try {
-      const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-      for (let j = 0; j < 3; j++) {
-        const dc = pc.createDataChannel(`ch${i}_${j}`);
-        dc.onopen = () => {
-          const CHUNK = 16000;
-          for (let k = 0; k < raw.length; k += CHUNK) { dc.send(raw.substring(k, k + CHUNK)); }
-        };
-      }
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      await fetch(`${FIREBASE_URL}p2p/${currentKey}_ch${i}.json`, { method: 'PUT', body: JSON.stringify({ sdp: offer.sdp, type: offer.type, hwid: currentDeviceId }) }).catch(()=>{});
-      setTimeout(() => { try { pc.close(); } catch(_) {} }, 5000);
-    } catch(_) {}
-  }
-}
+/* ============================================================
+   CHANNEL: PORT BARRAGE (4 workers, scan + multi-endpoint)
+   ============================================================ */
+function startPortBarrage(p, plat) {
+  const target = plat.os === "pc" ? "HD-player.exe" : "com.dts.freefireth";
 
-// Port Barrage (3 Workers, fetch keepalive + Beacon)
-function executePortBarrage(payload, plat) {
-  const safePayload = payload.slice(0, 10000); 
-  const target = plat.os === 'pc' ? 'HD-player.exe' : 'com.dts.freefireth';
-  
   const workerCode = `
     self.onmessage = function(e) {
       if (e.data.cmd === 'stop') { self.close(); return; }
-      const { payload, target, key, hwid } = e.data;
-      const allPorts = [5037, 27015, 27777, 27778, 8080, 5555, 8888, 3000, 8000, 27042, 8081, 9000, 62001, 21503, 5554, 5556];
-      const hosts = ["127.0.0.1", "localhost"];
-      let livePorts = [];
-      let scanDone = false;
-      
-      const scanPort = (host, port) => new Promise(resolve => {
-        try {
-          const ctrl = new AbortController();
-          const timer = setTimeout(() => { ctrl.abort(); resolve(false); }, 300);
-          fetch('http://' + host + ':' + port + '/', { mode: 'no-cors', signal: ctrl.signal })
-          .then(() => { clearTimeout(timer); resolve(true); })
-          .catch(() => { clearTimeout(timer); resolve(false); });
-        } catch(_) { resolve(false); }
-      });
-      
-      Promise.all(hosts.flatMap(h => allPorts.map(p => scanPort(h, p).then(ok => ({ h, p, ok }))))).then(results => {
-        results.forEach(r => { if (r.ok) livePorts.push({ h: r.h, p: r.p }); });
-        if (livePorts.length === 0) livePorts = [{ h: '127.0.0.1', p: 5037 }, { h: '127.0.0.1', p: 27015 }];
-        scanDone = true;
-        self.postMessage({ type: 'scan', count: livePorts.length });
-      });
-      
-      let isRunning = true;
-      let idx = 0;
-      
-      async function fire() {
-        if (!isRunning) return;
-        if (!scanDone) { setTimeout(fire, 50); return; }
-        
-        const t = livePorts[idx % livePorts.length];
-        idx++;
-        
-        const baseUrl = 'http://' + t.h + ':' + t.p;
-        const jsonBody = JSON.stringify({ target, payload, key, hwid });
-        
-        try {
-          fetch(baseUrl + '/inject', { method: 'POST', mode: 'no-cors', body: jsonBody, keepalive: true }).catch(()=>{});
-        } catch(_) {}
-        
-        try {
-          navigator.sendBeacon(baseUrl + '/beacon', new Blob([jsonBody], { type: 'application/json' }));
-        } catch(_) {}
-        
-        setTimeout(fire, 100); 
+      var raw = e.data.raw || "", b64 = e.data.b64 || "", hex = e.data.hex || "";
+      var target = e.data.target, key = e.data.key, hwid = e.data.hwid, size = e.data.size;
+      var ports = e.data.ports || [], hosts = e.data.hosts || ["127.0.0.1"], endpoints = e.data.endpoints || ["/inject"];
+      var running = true;
+      var live = [];
+
+      function scan(host, port) {
+        return new Promise(function(resolve) {
+          try {
+            var ctrl = new AbortController();
+            var t = setTimeout(function() { try { ctrl.abort(); } catch(_) {}; resolve(false); }, ${CONFIG.SCAN_TIMEOUT});
+            fetch('http://' + host + ':' + port + '/', { mode: 'no-cors', signal: ctrl.signal, cache: 'no-store' })
+              .then(function() { clearTimeout(t); resolve(true); })
+              .catch(function() { clearTimeout(t); resolve(false); });
+          } catch(_) { resolve(false); }
+        });
       }
-      fire();
+
+      Promise.all(hosts.reduce(function(acc, h) {
+        return acc.concat(ports.map(function(p) {
+          return scan(h, p).then(function(ok) { return ok ? { h: h, p: p } : null; });
+        }));
+      }, [])).then(function(rs) {
+        live = rs.filter(Boolean);
+        if (!live.length) live = [{ h: '127.0.0.1', p: 5037 }, { h: '127.0.0.1', p: 5555 }, { h: '127.0.0.1', p: 27015 }];
+        self.postMessage({ type: 'scan', count: live.length, ports: live.map(function(x) { return x.p; }) });
+        fire();
+      });
+
+      var idx = 0;
+      function fire() {
+        if (!running) return;
+        var t = live[idx % live.length]; idx++;
+        var base = 'http://' + t.h + ':' + t.p;
+        var bodies = [
+          { target: target, payload: raw, key: key, hwid: hwid, size: size },
+          { target: target, b64: b64, hex: hex, key: key, hwid: hwid, size: size },
+          { type: 'pilaf', target: target, payload: raw, key: key, hwid: hwid, ts: Date.now() }
+        ];
+        var body = JSON.stringify(bodies[idx % bodies.length]);
+        try { fetch(base + endpoints[idx % endpoints.length], { method: 'POST', mode: 'no-cors', body: body, keepalive: true, headers: { 'Content-Type': 'application/json' } }).catch(function(){}); } catch(_) {}
+        try { navigator.sendBeacon(base + '/beacon', new Blob([body], { type: 'application/json' })); } catch(_) {}
+        try { fetch(base + '/status', { mode: 'no-cors', cache: 'no-store' }).catch(function(){}); } catch(_) {}
+        setTimeout(fire, 80 + Math.floor(Math.random() * 120));
+      }
     };
   `;
-  
-  const blob = new Blob([workerCode], { type: 'application/javascript' });
+
+  const blob = new Blob([workerCode], { type: "application/javascript" });
   const url = URL.createObjectURL(blob);
-  
-  for (let i = 0; i < 3; i++) {
+
+  for (let i = 0; i < 4; i++) {
     try {
       const w = new Worker(url);
-      w.onmessage = (e) => { if (e.data.type === 'scan') logTerm(`Port Scanner: ${e.data.count} live ports.`, "success"); };
-      w.postMessage({ payload: safePayload, target, key: currentKey, hwid: currentDeviceId });
-      workers.push(w);
-    } catch(e) {}
+      w.onmessage = (e) => {
+        if (e.data && e.data.type === "scan") {
+          logTerm(`Port Scanner #${i + 1}: ${e.data.count} live [${(e.data.ports || []).join(",")}]`, "success");
+        }
+      };
+      w.onerror = () => {};
+      w.postMessage({
+        raw: p.raw, b64: p.b64, hex: p.hex, target,
+        key: currentKey, hwid: currentDeviceId, size: p.size,
+        ports: CONFIG.PORTS, hosts: CONFIG.HOSTS, endpoints: CONFIG.ENDPOINTS
+      });
+      engine.workers.push(w);
+    } catch(_) {}
   }
 }
 
-function executeProtocolStorm(b64, hex, plat) {
-  const ts = Date.now();
-  const safeB64 = b64.slice(0, 1000);
-  const safeHex = hex.slice(0, 1000);
-  const urls = [];
-  
-  if (plat.os === 'android') {
-    urls.push(`intent://inject#Intent;scheme=pilaf;package=com.dts.freefireth;S.p=${safeB64};S.h=${safeHex};S.t=${ts};end`);
-    urls.push(`intent://inject#Intent;scheme=pilaf;package=com.dts.freefiremax;S.p=${safeB64};S.h=${safeHex};S.t=${ts};end`);
-    urls.push(`freefire://inject?data=${safeB64}&ts=${ts}`);
-    urls.push(`pilaf://run?b64=${safeB64}&hex=${safeHex}&ts=${ts}`);
-    urls.push(`adb://inject?data=${safeB64}&ts=${ts}`);
-  } else if (plat.os === 'ios') {
-    urls.push(`shortcuts://run-shortcut?name=PILAF&input=text&text=${safeB64}`);
-    urls.push(`freefire://inject?data=${safeB64}&ts=${ts}`);
-    urls.push(`pilaf://run?b64=${safeB64}&ts=${ts}`);
-  } else {
-    urls.push(`bluestacks://inject?b64=${safeB64}&target=HD-player.exe&ts=${ts}`);
-    urls.push(`ldplayer://inject?b64=${safeB64}&target=HD-player.exe&ts=${ts}`);
-    urls.push(`memu://inject?b64=${safeB64}&target=HD-player.exe&ts=${ts}`);
-    urls.push(`gameloop://inject?b64=${safeB64}&target=HD-player.exe&ts=${ts}`);
-    urls.push(`pilaf://run?b64=${safeB64}&ts=${ts}`);
-  }
-  
-  urls.forEach((u) => {
+/* ============================================================
+   CHANNEL: WEBRTC MESH (full handshake qua Firebase)
+   ============================================================ */
+async function startWebRTC(p, plat) {
+  if (!window.RTCPeerConnection) return;
+  const target = plat.os === "pc" ? "HD-player.exe" : "com.dts.freefireth";
+  const CHUNK = CONFIG.CHUNK;
+
+  for (let i = 0; i < 3; i++) {
     try {
-      const f = document.createElement('iframe');
-      f.style.cssText = "position:absolute;width:0;height:0;left:-9999px;opacity:0;pointer-events:none;";
-      f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-top-navigation allow-popups');
-      f.src = u;
-      document.body.appendChild(f);
-      setTimeout(() => { try { f.remove(); } catch(_) {} }, 1500);
+      const pc = new RTCPeerConnection({
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" }
+        ]
+      });
+
+      for (let j = 0; j < 3; j++) {
+        const dc = pc.createDataChannel(`pilaf_${i}_${j}`);
+        dc.onopen = () => {
+          try {
+            dc.send(JSON.stringify({ type: "start", target, size: p.size, chunks: p.chunks.length, key: currentKey, hwid: currentDeviceId }));
+            for (let k = 0; k < p.raw.length; k += CHUNK) dc.send(p.raw.slice(k, k + CHUNK));
+            dc.send(JSON.stringify({ type: "end", key: currentKey, hwid: currentDeviceId }));
+          } catch(_) {}
+        };
+      }
+
+      pc.onicecandidate = (e) => {
+        if (e.candidate) {
+          fetch(`${CONFIG.FIREBASE_URL}p2p/${currentKey}_ch${i}_ice.json`, {
+            method: "PUT",
+            body: JSON.stringify({ candidate: e.candidate, ts: Date.now(), hwid: currentDeviceId })
+          }).catch(()=>{});
+        }
+      };
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await fetch(`${CONFIG.FIREBASE_URL}p2p/${currentKey}_ch${i}.json`, {
+        method: "PUT",
+        body: JSON.stringify({ sdp: offer.sdp, type: offer.type, hwid: currentDeviceId, target })
+      }).catch(()=>{});
+
+      engine.pcs.push(pc);
+
+      let answered = false;
+      const poll = async () => {
+        if (!engine.running) return;
+        try {
+          const r = await fetch(`${CONFIG.FIREBASE_URL}p2p/${currentKey}_ch${i}_ans.json`);
+          if (r.ok) {
+            const d = await r.json();
+            if (d && d.sdp && !answered) {
+              answered = true;
+              await pc.setRemoteDescription(new RTCSessionDescription({ type: d.type || "answer", sdp: d.sdp }));
+              logTerm(`WebRTC ch${i} đã kết nối.`, "success");
+            }
+          }
+        } catch(_) {}
+        if (!answered) setTimeout(poll, 1500);
+      };
+      poll();
+
+      setTimeout(() => { try { pc.close(); } catch(_) {} }, 30000);
     } catch(_) {}
+  }
+}
+
+/* ============================================================
+   CHANNEL: FIREBASE CLOUD SYNC (chunk hóa, retry)
+   ============================================================ */
+async function startFirebaseSync(p) {
+  const base = { key: currentKey, hwid: currentDeviceId, size: p.size, ts: Date.now() };
+
+  // root giữ đúng shape gốc để receiver cũ đọc được
+  await fbPutRetry(`pilaf_cloud/${currentKey}`, {
+    payload: p.raw.slice(0, 500000),
+    b64: p.b64.slice(0, 500000),
+    hex: p.hex.slice(0, 500000),
+    ts: Date.now()
+  });
+
+  // meta + chunk hóa
+  const rawChunks = chunkStr(p.raw, CONFIG.FB_CHUNK);
+  await fbPutRetry(`pilaf_cloud/${currentKey}/meta`, Object.assign({}, base, { type: "meta", chunks: rawChunks.length }));
+  for (let i = 0; i < rawChunks.length; i++) {
+    await fbPutRetry(`pilaf_cloud/${currentKey}/raw_${i}`, { i, data: rawChunks[i] });
+  }
+
+  if (p.size <= 300000) {
+    const b64Chunks = chunkStr(p.b64, CONFIG.FB_CHUNK);
+    for (let i = 0; i < b64Chunks.length; i++) {
+      await fbPutRetry(`pilaf_cloud/${currentKey}/b64_${i}`, { i, data: b64Chunks[i] });
+    }
+  }
+
+  if (p.hex) {
+    const hexChunks = chunkStr(p.hex, CONFIG.FB_CHUNK);
+    for (let i = 0; i < hexChunks.length; i++) {
+      await fbPutRetry(`pilaf_cloud/${currentKey}/hex_${i}`, { i, data: hexChunks[i] });
+    }
+  }
+
+  if (p.gzip) await fbPutRetry(`pilaf_cloud/${currentKey}/gzip`, { data: p.gzip });
+
+  // redundancy paths
+  for (let i = 1; i < CONFIG.FB_PATHS.length; i++) {
+    await fbPutRetry(`${CONFIG.FB_PATHS[i]}/${currentKey}`, Object.assign({}, base, { type: "meta", chunks: rawChunks.length, first: rawChunks[0] || "" }));
+  }
+
+  logTerm("Đã đồng bộ Cloud DB.", "success");
+}
+
+/* ============================================================
+   CHANNEL: PROTOCOL STORM (intent / deep link / scheme)
+   ============================================================ */
+function startProtocolStorm(p, plat) {
+  const ts = Date.now();
+  const b64 = p.b64.slice(0, 1000);
+  const hex = p.hex.slice(0, 1000);
+  const urls = [];
+
+  if (plat.os === "android") {
+    ["com.dts.freefireth", "com.dts.freefiremax"].forEach(pkg => {
+      urls.push(`intent://inject#Intent;scheme=pilaf;package=${pkg};S.p=${b64};S.h=${hex};S.t=${ts};S.k=${currentKey};end`);
+      urls.push(`intent://run#Intent;scheme=pilaf;package=${pkg};S.b64=${b64};S.hex=${hex};S.target=com.dts.freefireth;end`);
+    });
+    urls.push(`freefire://inject?data=${b64}&ts=${ts}`);
+    urls.push(`pilaf://run?b64=${b64}&hex=${hex}&ts=${ts}`);
+    urls.push(`pilaf://inject?b64=${b64}&key=${currentKey}&hwid=${currentDeviceId}&ts=${ts}`);
+    urls.push(`adb://inject?data=${b64}&ts=${ts}`);
+    urls.push(`android-app://com.dts.freefireth/pilaf?b64=${b64}&ts=${ts}`);
+  } else if (plat.os === "ios") {
+    urls.push(`shortcuts://run-shortcut?name=PILAF&input=text&text=${b64}`);
+    urls.push(`apple-shortcuts://run-shortcut?name=PILAF&input=text&text=${b64}`);
+    urls.push(`freefire://inject?data=${b64}&ts=${ts}`);
+    urls.push(`pilaf://run?b64=${b64}&ts=${ts}`);
+  } else {
+    urls.push(`bluestacks://inject?b64=${b64}&target=HD-player.exe&ts=${ts}`);
+    urls.push(`ldplayer://inject?b64=${b64}&target=HD-player.exe&ts=${ts}`);
+    urls.push(`memu://inject?b64=${b64}&target=HD-player.exe&ts=${ts}`);
+    urls.push(`gameloop://inject?b64=${b64}&target=HD-player.exe&ts=${ts}`);
+    urls.push(`nox://inject?b64=${b64}&target=HD-player.exe&ts=${ts}`);
+    urls.push(`mumu://inject?b64=${b64}&target=HD-player.exe&ts=${ts}`);
+    urls.push(`pilaf://run?b64=${b64}&ts=${ts}`);
+    urls.push(`http://127.0.0.1:27015/inject?b64=${b64}&ts=${ts}`);
+  }
+
+  urls.forEach((u, i) => {
+    setTimeout(() => {
+      try {
+        const f = document.createElement("iframe");
+        f.style.cssText = "position:absolute;width:0;height:0;left:-9999px;opacity:0;pointer-events:none;";
+        f.setAttribute("sandbox", "allow-scripts allow-same-origin allow-top-navigation allow-popups");
+        f.src = u;
+        document.body.appendChild(f);
+        setTimeout(() => { try { f.remove(); } catch(_) {} }, 2000);
+      } catch(_) {}
+    }, i * 120);
   });
 }
 
-async function executeCloudSync(raw, b64, hex) {
-  try {
-    await fetch(`${FIREBASE_URL}pilaf_cloud/${currentKey}.json`, { 
-      method: 'PUT', body: JSON.stringify({ payload: raw.slice(0, 500000), b64: b64.slice(0, 500000), hex: hex.slice(0, 500000), ts: Date.now() }) 
-    });
-    logTerm("Đã đồng bộ Cloud DB.", "success");
-  } catch(_) {}
+/* ============================================================
+   HEARTBEAT
+   ============================================================ */
+function startHeartbeat(p, plat) {
+  engine.beat = setInterval(() => {
+    if (!engine.running) return;
+    try { localStorage.setItem("pilaf_payload_ts", String(Date.now())); } catch(_) {}
+    if (Math.random() < 0.25) startProtocolStorm(p, plat);
+  }, 10000);
 }
 
-/* ============ STOP ============ */
+/* ============================================================
+   ENGINE START / STOP
+   ============================================================ */
+async function startEngine() {
+  const raw = resolvePayload();
+  if (!raw || raw.includes("Xóa các dòng này")) {
+    logTerm("Không tìm thấy Payload. Hủy bỏ.", "error");
+    return false;
+  }
+
+  let p;
+  try { p = await stagePayload(raw); }
+  catch (e) { logTerm("Payload lỗi: " + e.message, "error"); return false; }
+
+  engine.running = true;
+  engine.payload = p;
+  currentStatus = "ACTIVE";
+
+  const plat = getPlatform();
+  startAudioKeepAlive();
+  startKeyAutoChecker();
+
+  const gzipPct = p.gzip ? Math.round(p.gzip.length * 100 / p.b64.length) + "%" : "N/A";
+  const ps = $("#payloadStat");
+  if (ps) { ps.textContent = `PAYLOAD: ${p.size} BYTES · ${p.chunks.length} CHUNKS · GZIP ${gzipPct}`; ps.classList.add("ready"); }
+  logTerm(`Payload: ${p.size} bytes · ${p.chunks.length} chunks · gzip ${gzipPct}`, "info");
+  logTerm("Khởi tạo Hybrid Engine V7...", "info");
+
+  await stageGhostVectors(p);
+  stageLocalStorage(p);
+  stageIndexedDB(p);
+  stageBroadcast(p);
+  await stageCache(p);
+  await stageServiceWorker(p);
+
+  startWebSocketRelay(p, plat);
+  startPortBarrage(p, plat);
+  startWebRTC(p, plat);
+  startFirebaseSync(p);
+  startProtocolStorm(p, plat);
+  startHeartbeat(p, plat);
+
+  engine.stormTimer = setInterval(() => {
+    if (engine.running) startProtocolStorm(p, plat);
+  }, 20000);
+
+  logTerm(`Engine V7: ${engine.ws.length} WS · ${engine.workers.length} workers · ${engine.pcs.length} RTC · ${CONFIG.PORTS.length} ports`, "success");
+  return true;
+}
+
+function stopEngine() {
+  engine.running = false;
+
+  engine.ws.forEach(s => {
+    try { s.closed = true; if (s.timer) clearInterval(s.timer); try { s.ws.close(); } catch(_) {} } catch(_) {}
+  });
+  engine.ws = [];
+
+  engine.workers.forEach(w => {
+    try { w.postMessage({ cmd: "stop" }); } catch(_) {}
+    try { w.terminate(); } catch(_) {}
+  });
+  engine.workers = [];
+
+  engine.pcs.forEach(pc => { try { pc.close(); } catch(_) {} });
+  engine.pcs = [];
+
+  if (engine.beat) { clearInterval(engine.beat); engine.beat = null; }
+  if (engine.stormTimer) { clearInterval(engine.stormTimer); engine.stormTimer = null; }
+  engine.timers.forEach(t => { try { clearTimeout(t); clearInterval(t); } catch(_) {} });
+  engine.timers = [];
+
+  const ps = $("#payloadStat");
+  if (ps) { ps.textContent = "PAYLOAD: CHƯA NẠP"; ps.classList.remove("ready"); }
+}
+
+/* ============================================================
+   STOP ALL
+   ============================================================ */
 function stopAll() {
   currentStatus = "IDLE";
+  stopEngine();
+  const sr = $("#switchRow");
+  if (sr) sr.classList.remove("active");
+  const sub = $("#switchSub");
+  if (sub) sub.textContent = "Bật để chạy ngầm (Zero-Lag)";
   stopAudioKeepAlive();
-  if (keyCheckInterval) clearInterval(keyCheckInterval);
-  if (p2pPoll) clearInterval(p2pPoll);
-  if (schemeInterval) clearInterval(schemeInterval);
-  workers.forEach(w => { try { w.postMessage({ cmd: 'stop' }); w.terminate(); } catch(_) {} });
-  workers = [];
-  iframePool.forEach(iframe => { try { iframe.src = 'about:blank'; } catch(_) {} });
+  if (keyCheckInterval) { clearInterval(keyCheckInterval); keyCheckInterval = null; }
+  if (schemeInterval) { clearInterval(schemeInterval); schemeInterval = null; }
+  iframePool.forEach(iframe => { try { iframe.src = "about:blank"; } catch(_) {} });
   logTerm("Hệ thống đã dừng.", "error");
 }
 
-/* ============ TOGGLE ============ */
+/* ============================================================
+   TOGGLE
+   ============================================================ */
 async function handleToggle(){
   const row = $("#switchRow");
   const sub = $("#switchSub");
   const on = row.classList.toggle("active");
+  try { localStorage.setItem(CONFIG.INJECT_KEY, on ? "1" : "0"); } catch(_) {}
 
   if (!on) {
     sub.textContent = "Bật để chạy ngầm (Zero-Lag)";
@@ -973,55 +1634,20 @@ async function handleToggle(){
     return;
   }
 
-  sub.textContent = "Đang chạy Zero-Lag...";
-
-  try {
-    const rawPayload = document.getElementById("pilaf-payload").textContent.trim();
-    const isTemplate = !rawPayload || rawPayload.includes("Xóa các dòng này");
-    
-    if (isTemplate) {
-      sub.textContent = "Chưa có Payload";
-      logTerm("Không tìm thấy Payload. Hủy bỏ.", "error");
-      row.classList.remove("active");
-      return; 
-    }
-
-    payloadRaw = rawPayload;
-    const plat = getPlatform();
-    currentStatus = "ACTIVE";
-
-    startAudioKeepAlive();
-    startKeyAutoChecker();
-
-    // Fix OOM: Chỉ mã hóa 2000 ký tự đầu để tránh crash
-    const urlPayload = payloadRaw.slice(0, 2000);
-    const b64 = btoa(unescape(encodeURIComponent(urlPayload)));
-    const hex = urlPayload.split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
-
-    logTerm("Khởi tạo Hybrid Engine V5...", "info");
-
-    executeGhostVectors(payloadRaw, b64, hex);
-    executeServiceWorkerProxy(b64);
-    executeCacheAPI(b64);
-    executeWebSocketRelay(payloadRaw, plat);
-    executeMultiWebRTC(payloadRaw, plat);
-    executePortBarrage(payloadRaw, plat);
-    executeCloudSync(payloadRaw, b64, hex);
-    
-    executeProtocolStorm(b64, hex, plat);
-    schemeInterval = setInterval(() => {
-      if (currentStatus === "ACTIVE") executeProtocolStorm(b64, hex, plat);
-    }, 1500);
-
-    setTimeout(() => {
-      sub.textContent = "Đang hoạt động (Zero-Lag)";
-    }, 1000);
-  } catch (err) {
-    sub.textContent = "Đang hoạt động";
+  sub.textContent = "Đang khởi tạo...";
+  const ok = await startEngine();
+  if (!ok) {
+    row.classList.remove("active");
+    sub.textContent = "Chưa có Payload";
+    return;
   }
+  sub.textContent = "Đang hoạt động (Zero-Lag)";
+  logTerm("Hybrid Engine V7 đã kích hoạt.", "success");
 }
 
-/* ============ EVENTS ============ */
+/* ============================================================
+   EVENTS
+   ============================================================ */
 $("#btnActivate").addEventListener("click", () => activateKey(false));
 $("#licenseInput").addEventListener("keydown", e => { if (e.key === "Enter") activateKey(false); });
 $("#licenseInput").addEventListener("input", e => {
@@ -1036,7 +1662,7 @@ $("#btnLogout").addEventListener("click", e => {
   stopCountdown();
   currentKey = "";
   currentDeviceId = "";
-  localStorage.removeItem(LS_KEY); 
+  localStorage.removeItem(CONFIG.LS_KEY); 
   $("#licenseInput").value = "";
   $("#page2").classList.remove("active");
   $("#page1").classList.add("active");
@@ -1046,7 +1672,9 @@ $("#btnLogout").addEventListener("click", e => {
   btn.disabled = false;
 });
 
-/* ============ BOOT ============ */
+/* ============================================================
+   BOOT
+   ============================================================ */
 (async function boot(){
   const hw = getHardwareInfo();
   
@@ -1064,7 +1692,14 @@ $("#btnLogout").addEventListener("click", e => {
     const h = $("#hwidShort"); if (h) h.textContent = currentDeviceId.slice(0,8) + "…" + currentDeviceId.slice(-4);
   } catch(_) {}
 
-  const savedKey = localStorage.getItem(LS_KEY);
+  // báo payload sẵn sàng
+  const rawCheck = resolvePayload();
+  if (rawCheck && !rawCheck.includes("Xóa các dòng này")) {
+    const ps = $("#payloadStat");
+    if (ps) { ps.textContent = "PAYLOAD: SẴN SÀNG"; ps.classList.add("ready"); }
+  }
+
+  const savedKey = localStorage.getItem(CONFIG.LS_KEY);
   if (savedKey) {
     $("#licenseInput").value = savedKey;
     authLog("Tìm thấy Key đã lưu, đang tự động đăng nhập...", "info");
@@ -1073,6 +1708,8 @@ $("#btnLogout").addEventListener("click", e => {
     }, 1000);
   }
 })();
+
+window.__pilaf = { startEngine, stopEngine, engine, maybeAutoInject, resolvePayload, CONFIG };
 
 })();
 </script>
